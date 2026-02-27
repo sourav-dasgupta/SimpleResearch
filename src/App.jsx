@@ -225,16 +225,33 @@ DISCLAIMER: End every response: "This is informational only and does not constit
 // Tries /api/claude proxy (Netlify deployment) first, then falls back to direct
 // Anthropic API which works in the Claude artifact sandbox.
 async function callClaude(body) {
+  // First, probe whether the proxy exists (cheap HEAD-like check via a fast fetch)
+  // If we get any real HTTP response (even 500), the proxy is deployed — use it.
+  // Only fall back to direct if we get a network error (proxy doesn't exist = artifact/local).
+  let useProxy = false;
   try {
+    const probe = await fetch("/api/claude", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1,messages:[{role:"user",content:"hi"}]}),
+      signal: AbortSignal.timeout(4000)
+    });
+    // Any HTTP response means the proxy route exists
+    useProxy = true;
+  } catch(e) {
+    // Network error = route doesn't exist (artifact sandbox, local dev without netlify dev)
+    useProxy = false;
+  }
+
+  if (useProxy) {
     const r = await fetch("/api/claude", {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(3000)
+      body: JSON.stringify(body)
+      // No timeout — web search calls can take 20-30s, trust Netlify's 26s limit
     });
-    if (r.ok) { const d = await r.json(); if (d.content) return d; }
-  } catch(e) { /* proxy unavailable, fall through */ }
-  // Direct call — works in Claude artifact sandbox (key injected automatically)
-  // and on local dev if window.__ANTHROPIC_KEY__ is set
+    return r.json();
+  }
+
+  // Direct call — artifact sandbox (key injected by Claude.ai automatically)
   const headers = {
     "Content-Type":"application/json",
     "anthropic-version":"2023-06-01",
@@ -403,39 +420,41 @@ function TickerScreen({ ticker, acctType, onBack }) {
   const up  = isOwned ? isPos(pos.currentPrice, pos.avgCost) : true;
   const chartColor = up ? T.green : T.red;
 
-  // ── Live research fetch — real Claude API call with web search ──
+  // ── Live research fetch — 30s timeout, falls back to mock RESEARCH data ──
   useEffect(()=>{
     if(isCrypto||isETF){setLoadingRes(false);return;}
     setLoadingRes(true);
     setLiveRes(null);
     setResError(false);
 
-    const controller = new AbortController();
-    const timeout = setTimeout(()=>controller.abort(), 12000);
-
     const sysPrompt = buildResearchPrompt(pos, effectiveAcctType, news, isOwned);
+
+    const fallbackToMock = () => {
+      setLiveRes(null);
+      setResError(false);
+      setLoadingRes(false);
+      // resError stays false — renderer will use mock RESEARCH[ticker] as fallback
+    };
+
+    const timer = setTimeout(()=>{ fallbackToMock(); }, 30000);
 
     callClaude({
       model:"claude-sonnet-4-20250514",
       max_tokens:400,
-      system:[{
-        type:"text",
-        text: sysPrompt,
-        cache_control:{ type:"ephemeral" }
-      }],
-      tools:[{ type:"web_search_20250305", name:"web_search" }],
-      messages:[{ role:"user", content:`Fetch current analyst research for ${ticker}. Use web search to find the latest consensus rating, price targets, bull case, and bear case. Be specific about which firms said what.` }]
+      system:[{type:"text",text:sysPrompt,cache_control:{type:"ephemeral"}}],
+      tools:[{type:"web_search_20250305",name:"web_search"}],
+      messages:[{role:"user",content:`Fetch current analyst research for ${ticker}. Use web search to find the latest consensus rating, price targets, bull case, and bear case. Be specific about which firms said what.`}]
     })
     .then(d=>{
-      clearTimeout(timeout);
+      clearTimeout(timer);
       const raw = d.content?.filter(b=>b.type==="text").map(b=>b.text).join("") || "";
-      if(raw) { setLiveRes(raw); setShowRes(true); }
-      else { setResError(true); setShowRes(true); }
+      if(raw){ setLiveRes(raw); }
+      // if empty, falls through to mock automatically
     })
-    .catch(()=>{ clearTimeout(timeout); setResError(true); setShowRes(true); })
+    .catch(()=>{ clearTimeout(timer); })
     .finally(()=>setLoadingRes(false));
 
-    return ()=>{ controller.abort(); clearTimeout(timeout); };
+    return ()=>clearTimeout(timer);
   },[ticker]);
 
   useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
@@ -571,52 +590,48 @@ function TickerScreen({ ticker, acctType, onBack }) {
                   ))}
                   <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
                 </>
-              ) : resError ? (
-                <div style={{fontSize:13,color:T.sub,textAlign:"center",padding:"10px 0",lineHeight:1.7}}>
-                  Research unavailable right now — markets move fast and so do our servers.<br/>
-                  <span style={{fontSize:11,color:T.muted}}>Try again in a moment.</span>
-                </div>
-              ) : liveRes ? (
-                <>
-                  {/* ── Consensus row ── */}
-                  {(()=>{
-                    const r = parseResearch(liveRes);
-                    const cites = parseCitations(liveRes);
-                    return (
-                      <>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                          <span style={{fontSize:10,fontWeight:700,color:T.text}}>{r.consensus || "Analyst Consensus"}</span>
-                          <div style={{fontSize:9,padding:"2px 7px",background:T.greenBg,borderRadius:8,color:T.greenTx,fontWeight:600,border:`1px solid #BBF7D0`,display:"flex",alignItems:"center",gap:4}}>
-                            <div style={{width:5,height:5,borderRadius:"50%",background:T.green}}/>
-                            Live
-                          </div>
-                        </div>
-                        {r.earnings&&<div style={{fontSize:11,color:T.sub,marginBottom:10,lineHeight:1.5}}>{r.earnings}</div>}
-                        {/* Bull / Bear grid */}
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-                          <div style={{padding:"10px",background:T.greenBg,borderRadius:10,border:`1px solid #BBF7D0`}}>
-                            <div style={{fontSize:9,fontWeight:700,color:T.greenTx,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>▲ Bull</div>
-                            <div style={{fontSize:11,color:T.text,lineHeight:1.5}}>{r.bull||"—"}</div>
-                          </div>
-                          <div style={{padding:"10px",background:T.redBg,borderRadius:10,border:`1px solid #FECACA`}}>
-                            <div style={{fontSize:9,fontWeight:700,color:T.redTx,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>▼ Bear</div>
-                            <div style={{fontSize:11,color:T.text,lineHeight:1.5}}>{r.bear||"—"}</div>
-                          </div>
-                        </div>
-                        {/* Citations */}
-                        {cites.length>0&&(
-                          <div style={{borderTop:`1px solid ${T.border2}`,paddingTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
-                            {cites.map((c,i)=>(
-                              <span key={i} style={{fontSize:9,padding:"2px 7px",background:T.pill,borderRadius:10,color:T.sub,border:`1px solid ${T.border}`}}>{c.source} · {c.date}</span>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                </>
               ) : (
-                <div style={{fontSize:13,color:T.sub,textAlign:"center",padding:"10px 0"}}>No analyst data found for {ticker}.</div>
+                // liveRes null after load = use mock RESEARCH data as fallback
+                (()=>{
+                  const r = liveRes ? parseResearch(liveRes) : res ? {
+                    consensus: `${res.rating} · ${res.target} · ${COV[ticker]?.n||"—"} analysts`,
+                    earnings:  res.earnings,
+                    bull: res.bull ? `${res.bull.firm ? res.bull.firm+": " : ""}${res.bull.text}` : null,
+                    bear: res.bear ? `${res.bear.firm ? res.bear.firm+": " : ""}${res.bear.text}` : null,
+                  } : null;
+                  const cites = liveRes ? parseCitations(liveRes) : [];
+                  const isLive = !!liveRes;
+                  if(!r) return <div style={{fontSize:13,color:T.sub,textAlign:"center",padding:"10px 0"}}>No analyst data available for {ticker}.</div>;
+                  return (
+                    <>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                        <span style={{fontSize:10,fontWeight:700,color:T.text}}>{r.consensus||"Analyst Consensus"}</span>
+                        {isLive
+                          ? <div style={{fontSize:9,padding:"2px 7px",background:T.greenBg,borderRadius:8,color:T.greenTx,fontWeight:600,border:`1px solid #BBF7D0`,display:"flex",alignItems:"center",gap:4}}><div style={{width:5,height:5,borderRadius:"50%",background:T.green}}/>Live</div>
+                          : <div style={{fontSize:9,padding:"2px 7px",background:T.pill,borderRadius:8,color:T.muted,fontWeight:600,border:`1px solid ${T.border}`}}>Cached</div>
+                        }
+                      </div>
+                      {r.earnings&&<div style={{fontSize:11,color:T.sub,marginBottom:10,lineHeight:1.5}}>{r.earnings}</div>}
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                        <div style={{padding:"10px",background:T.greenBg,borderRadius:10,border:`1px solid #BBF7D0`}}>
+                          <div style={{fontSize:9,fontWeight:700,color:T.greenTx,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>▲ Bull</div>
+                          <div style={{fontSize:11,color:T.text,lineHeight:1.5}}>{r.bull||"—"}</div>
+                        </div>
+                        <div style={{padding:"10px",background:T.redBg,borderRadius:10,border:`1px solid #FECACA`}}>
+                          <div style={{fontSize:9,fontWeight:700,color:T.redTx,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>▼ Bear</div>
+                          <div style={{fontSize:11,color:T.text,lineHeight:1.5}}>{r.bear||"—"}</div>
+                        </div>
+                      </div>
+                      {cites.length>0&&(
+                        <div style={{borderTop:`1px solid ${T.border2}`,paddingTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
+                          {cites.map((c,i)=>(
+                            <span key={i} style={{fontSize:9,padding:"2px 7px",background:T.pill,borderRadius:10,color:T.sub,border:`1px solid ${T.border}`}}>{c.source} · {c.date}</span>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
               )}
 
               {/* ── Inline chat button — right below bull/bear ── */}
@@ -642,7 +657,7 @@ function TickerScreen({ ticker, acctType, onBack }) {
         {/* Simulate Sell — now below timing, after chat */}
         {isOwned && (
           <div style={{margin:"10px 16px 0"}}>
-            <button onClick={()=>{setTaxResult(calcTax(pos,effectiveAcctType));setShowTax(true);}}
+            <button onClick={()=>{if(!showTax){setTaxResult(calcTax(pos,effectiveAcctType));}setShowTax(o=>!o);}}
               style={{width:"100%",padding:"13px",background:showTax?T.pill:T.bg,border:`1px solid ${T.border}`,borderRadius:10,color:showTax?T.sub:T.text,fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"all 0.2s"}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:15}}>💸</span>
