@@ -443,7 +443,7 @@ function TickerScreen({ ticker, acctType, onBack }) {
   };
 
   return (
-    <div style={{position:"fixed",inset:0,background:T.bg,overflowY:"auto",zIndex:300,display:"flex",flexDirection:"column"}}>
+    <div style={{position:"absolute",inset:0,background:T.bg,overflowY:"auto",zIndex:300,display:"flex",flexDirection:"column"}}>
       <style>{`@keyframes sUp{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
 
       {/* Header */}
@@ -639,7 +639,7 @@ function TickerScreen({ ticker, acctType, onBack }) {
 
       {/* Floating chat modal — slides up from bottom above Trade button */}
       {chatOpen && (
-        <div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,zIndex:30,padding:"0 0",animation:"sUp 0.22s ease"}}>
+        <div style={{position:"absolute",bottom:90,left:0,right:0,zIndex:30,padding:"0 0",animation:"sUp 0.22s ease"}}>
           <div style={{margin:"0 12px",background:T.card,border:`1px solid ${T.border}`,borderRadius:16,overflow:"hidden",boxShadow:"0 -4px 24px rgba(0,0,0,0.12)"}}>
             {/* Chat header */}
             <div style={{padding:"12px 14px 10px",borderBottom:`1px solid ${T.border2}`,display:"flex",alignItems:"center",justifyContent:"space-between",background:T.card}}>
@@ -707,7 +707,7 @@ function TickerScreen({ ticker, acctType, onBack }) {
       )}
 
       {/* Fixed Trade button */}
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,padding:"12px 16px 20px",background:T.card,borderTop:`1px solid ${T.border}`,zIndex:20}}>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"12px 16px 20px",background:T.card,borderTop:`1px solid ${T.border}`,zIndex:20}}>
         <button onClick={()=>setShowTrade(true)}
           style={{width:"100%",padding:"14px",background:T.text,border:"none",borderRadius:14,color:T.card,fontSize:15,fontWeight:700,cursor:"pointer",letterSpacing:"-0.01em"}}>
           Trade
@@ -716,7 +716,7 @@ function TickerScreen({ ticker, acctType, onBack }) {
 
       {/* Trade modal stub */}
       {showTrade && (
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:400,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setShowTrade(false)}>
+        <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.4)",zIndex:400,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setShowTrade(false)}>
           <div style={{background:T.card,borderRadius:"16px 16px 0 0",padding:"20px 20px 40px",width:"100%",maxWidth:430,animation:"sUp 0.22s ease"}} onClick={e=>e.stopPropagation()}>
             <div style={{width:36,height:4,background:T.border,borderRadius:2,margin:"0 auto 16px"}}/>
             <div style={{fontSize:16,fontWeight:700,color:T.text,marginBottom:4}}>Trade {ticker}</div>
@@ -812,7 +812,7 @@ function InvestScreen({ onBack, onSelectTicker, tabs, activeTab, onTabChange }) 
   const totalPct  = totalCost > 0 ? ((totalPnl/totalCost)*100).toFixed(1) : "0.0";
 
   return (
-    <div style={{position:"fixed",inset:0,background:T.bg,zIndex:200,display:"flex",flexDirection:"column"}}>
+    <div style={{position:"absolute",inset:0,background:T.bg,zIndex:200,display:"flex",flexDirection:"column"}}>
       {/* Header */}
       <div style={{position:"sticky",top:0,background:T.card,borderBottom:`1px solid ${T.border}`,padding:"13px 16px",display:"flex",alignItems:"center",gap:10,zIndex:10,flexShrink:0}}>
         <button onClick={onBack} style={{background:"none",border:"none",padding:"6px 4px",cursor:"pointer",fontSize:18,color:T.text,lineHeight:1}}>←</button>
@@ -853,7 +853,7 @@ function InvestScreen({ onBack, onSelectTicker, tabs, activeTab, onTabChange }) 
       </div>
 
       {/* Bottom tabs */}
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:T.card,borderTop:`1px solid ${T.border}`,zIndex:20,display:"flex"}}>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,background:T.card,borderTop:`1px solid ${T.border}`,zIndex:20,display:"flex"}}>
         {tabs.map(t=>(
           <button key={t.id} onClick={()=>{onBack();onTabChange(t.id);}}
             style={{flex:1,padding:"10px 4px 14px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
@@ -936,7 +936,7 @@ function StocksScreen({ onBack, onSelectTicker, onSelectAccount, tabs, activeTab
   const fundsVal  = funds.reduce((s,p)=>s+p.currentPrice*p.shares,0);
 
   return (
-    <div style={{position:"fixed",inset:0,background:T.bg,zIndex:200,display:"flex",flexDirection:"column"}}>
+    <div style={{position:"absolute",inset:0,background:T.bg,zIndex:200,display:"flex",flexDirection:"column"}}>
       {/* Header */}
       <div style={{position:"sticky",top:0,background:T.card,borderBottom:`1px solid ${T.border}`,padding:"13px 16px",display:"flex",alignItems:"center",gap:10,zIndex:10,flexShrink:0}}>
         <button onClick={onBack} style={{background:"none",border:"none",padding:"6px 4px",cursor:"pointer",fontSize:18,color:T.text,lineHeight:1}}>←</button>
@@ -972,7 +972,7 @@ function StocksScreen({ onBack, onSelectTicker, onSelectAccount, tabs, activeTab
       </div>
 
       {/* Bottom tabs */}
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:T.card,borderTop:`1px solid ${T.border}`,zIndex:20,display:"flex"}}>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,background:T.card,borderTop:`1px solid ${T.border}`,zIndex:20,display:"flex"}}>
         {tabs.map(t=>(
           <button key={t.id} onClick={()=>{onBack();onTabChange(t.id);}}
             style={{flex:1,padding:"10px 4px 14px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
@@ -1003,7 +1003,7 @@ function AllAccountsScreen({ onBack, onSelectTicker, onSelectAccount, tabs, acti
   }));
 
   return (
-    <div style={{position:"fixed",inset:0,background:T.bg,zIndex:200,animation:"sUp 0.22s ease",display:"flex",flexDirection:"column"}}>
+    <div style={{position:"absolute",inset:0,background:T.bg,zIndex:200,animation:"sUp 0.22s ease",display:"flex",flexDirection:"column"}}>
       {/* Header */}
       <div style={{background:T.card,borderBottom:`1px solid ${T.border}`,padding:"13px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
         <button onClick={onBack} style={{background:"none",border:"none",padding:"6px 4px",cursor:"pointer",fontSize:18,color:T.text,lineHeight:1}}>←</button>
@@ -1102,7 +1102,7 @@ function AccountScreen({ acctId, onBack, onSelectTicker, tabs, activeTab, onTabC
   const isCrypto = acct.type === "CRYPTO";
 
   return (
-    <div style={{position:"fixed",inset:0,background:T.bg,zIndex:200,animation:"sUp 0.22s ease",display:"flex",flexDirection:"column"}}>
+    <div style={{position:"absolute",inset:0,background:T.bg,zIndex:200,animation:"sUp 0.22s ease",display:"flex",flexDirection:"column"}}>
       {/* Header */}
       <div style={{background:T.card,borderBottom:`1px solid ${T.border}`,padding:"13px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
         <button onClick={onBack} style={{background:"none",border:"none",padding:"6px 4px",cursor:"pointer",fontSize:18,color:T.text,lineHeight:1}}>←</button>
@@ -1622,7 +1622,9 @@ export default function App() {
   const TAB_BAR_H= 62;
 
   return (
-    <div style={{fontFamily:"'DM Sans','Helvetica Neue',sans-serif",maxWidth:430,margin:"0 auto",position:"relative",height:"100vh",overflow:"hidden",background:T.bg}}>
+    <>
+      <style>{`body{margin:0;background:#f1f5f9;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;}*{box-sizing:border-box;}`}</style>
+      <div style={{fontFamily:"'DM Sans','Helvetica Neue',sans-serif",maxWidth:430,width:"100%",margin:"0 auto",position:"relative",height:"100vh",overflow:"hidden",background:T.bg,boxShadow:"0 0 0 1px #e5e7eb, 0 8px 40px rgba(0,0,0,0.10)"}}>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:2px}
@@ -1649,7 +1651,7 @@ export default function App() {
       )}
 
       {/* ── Fixed top bar — WS style ── */}
-      <div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,height:TOP_H,background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",zIndex:40}}>
+      <div style={{position:"absolute",top:0,left:0,right:0,height:TOP_H,background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",zIndex:40}}>
         {/* Bell with red dot */}
         <div style={{position:"relative",width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
           <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
@@ -1693,7 +1695,7 @@ export default function App() {
       </div>
 
       {/* ── Fixed bottom tab bar ── */}
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,height:TAB_BAR_H,background:T.card,borderTop:`1px solid ${T.border}`,display:"flex",zIndex:50}}>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:TAB_BAR_H,background:T.card,borderTop:`1px solid ${T.border}`,display:"flex",zIndex:50}}>
         {TABS.map(t=>{
           const active = tab===t.id;
           return (
@@ -1707,5 +1709,6 @@ export default function App() {
         })}
       </div>
     </div>
+    </>
   );
 }
