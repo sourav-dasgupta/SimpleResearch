@@ -263,53 +263,6 @@ function stripCitations(text) {
   return text.replace(/\[CITATION:[^\]]+\]/g, '').replace(/\nCITATIONS:\n?/g, '').trim();
 }
 
-// ─── RESEARCH PANEL PROMPT ───────────────
-function buildResearchPrompt(pos, acctType, news, isOwned) {
-  const nc = (news||[]).filter(Boolean);
-  const newsCtx = nc.length ? `\n\nPlatform news:\n${nc.map(h=>`- ${h}`).join("\n")}` : "";
-  const posCtx = isOwned
-    ? `${pos.ticker} (${pos.name}) | Account: ${acctType} | ${pos.shares} shares | Avg cost $${pos.avgCost} | Current $${pos.currentPrice} | Last bought: ${pos.lastPurchaseDate}`
-    : `${pos.ticker} (${pos.name}) | Current $${pos.currentPrice} | Not in portfolio`;
-  return `You are Simple Research, a financial research assistant inside Wealthsimple. NOT a financial advisor.
-
-USER POSITION: ${posCtx}${newsCtx}
-
-TASK: Fetch current analyst data for ${pos.ticker} using web search. Return a structured research summary with:
-1. Consensus rating (STRONG BUY / BUY / HOLD / SELL)
-2. Average price target with range (e.g. "$142.00 (Range: $110 – $175)")
-3. Analyst count (e.g. "Based on 38 analysts")
-4. Last earnings — one sentence (beat/miss, key metric)
-5. Bull case — name the firm and their specific thesis (e.g. "Morgan Stanley (Buy, $175 PT): data centre demand accelerating...")
-6. Bear case — name the firm and their specific risk (e.g. "Bernstein (Hold, $118 PT): margin compression risk...")
-
-HARD RULES:
-- Source attribution before the data, always
-- No buy/sell recommendations
-- End with: "This is informational only and does not constitute financial, investment, or tax advice."
-- Then output CITATIONS block:
-[CITATION: Firm | Claim | Date]
-Include 3-4 citations. Always include consensus source and one each for bull/bear firm.`;
-}
-
-// ─── CITATION PARSER ─────────────────────
-function parseCitations(text) {
-  const lines = text.split('\n');
-  const citations = [];
-  lines.forEach(line => {
-    const m = line.match(/\[CITATION:\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\]/);
-    if (m) citations.push({ source: m[1].trim(), claim: m[2].trim(), date: m[3].trim() });
-  });
-  return citations;
-}
-function stripCitations(text) {
-  // Remove [CITATION: ...] lines and the CITATIONS: header
-  return text
-    .replace(/\[CITATION:[^\]]+\]/g, '')
-    .replace(/CITATIONS:\n?/g, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
 // ─── PRICE CHART ─────────────────────────
 function PriceChart({ ticker, color }) {
   const [range, setRange] = useState("1M");
