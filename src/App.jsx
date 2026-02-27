@@ -1622,9 +1622,7 @@ export default function App() {
   const TAB_BAR_H= 62;
 
   return (
-    <>
-      <style>{`body{margin:0;background:#f1f5f9;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;}*{box-sizing:border-box;}`}</style>
-      <div style={{fontFamily:"'DM Sans','Helvetica Neue',sans-serif",maxWidth:430,width:"100%",margin:"0 auto",position:"relative",height:"100vh",overflow:"hidden",background:T.bg,boxShadow:"0 0 0 1px #e5e7eb, 0 8px 40px rgba(0,0,0,0.10)"}}>
+    <div style={{fontFamily:"'DM Sans','Helvetica Neue',sans-serif",maxWidth:430,width:"100%",margin:"0 auto",display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden",background:T.bg}}>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:2px}
@@ -1633,26 +1631,8 @@ export default function App() {
         @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
       `}</style>
 
-      {/* ── Overlay screens — keyed on themeVer so they remount on theme change ── */}
-      {tickerInfo && (
-        <TickerScreen ticker={tickerInfo.ticker} acctType={tickerInfo.acctType} onBack={()=>setTickerInfo(null)}/>
-      )}
-      {!tickerInfo && acctId==="all" && (
-        <AllAccountsScreen onBack={()=>setAcctId(null)} onSelectTicker={handleSelectTicker} onSelectAccount={handleSelectAccount} tabs={TABS} activeTab={tab} onTabChange={setTab}/>
-      )}
-      {!tickerInfo && acctId==="invest" && (
-        <InvestScreen onBack={()=>setAcctId(null)} onSelectTicker={handleSelectTicker} onSelectAccount={handleSelectAccount} tabs={TABS} activeTab={tab} onTabChange={setTab}/>
-      )}
-      {!tickerInfo && acctId==="stocks" && (
-        <StocksScreen onBack={()=>setAcctId(null)} onSelectTicker={handleSelectTicker} onSelectAccount={handleSelectAccount} tabs={TABS} activeTab={tab} onTabChange={setTab}/>
-      )}
-      {!tickerInfo && acctId && acctId!=="all" && acctId!=="stocks" && acctId!=="invest" && (
-        <AccountScreen acctId={acctId} onBack={()=>setAcctId(null)} onSelectTicker={handleSelectTicker} tabs={TABS} activeTab={tab} onTabChange={setTab}/>
-      )}
-
-      {/* ── Fixed top bar — WS style ── */}
-      <div style={{position:"absolute",top:0,left:0,right:0,height:TOP_H,background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",zIndex:40}}>
-        {/* Bell with red dot */}
+      {/* ── Top bar ── */}
+      <div style={{flexShrink:0,height:TOP_H,background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",zIndex:40}}>
         <div style={{position:"relative",width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
           <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
             <path d="M11 2a7 7 0 00-7 7v3l-2 3h18l-2-3V9a7 7 0 00-7-7z" stroke={T.text} strokeWidth="1.6" fill="none"/>
@@ -1660,8 +1640,6 @@ export default function App() {
           </svg>
           <div style={{position:"absolute",top:4,right:4,width:7,height:7,borderRadius:"50%",background:"#EF4444",border:`1.5px solid ${T.card}`}}/>
         </div>
-
-        {/* Centered Home pill with dots */}
         <div style={{display:"flex",alignItems:"center",gap:7}}>
           <div style={{width:6,height:6,borderRadius:"50%",background:T.muted,opacity:0.5}}/>
           <div style={{padding:"5px 18px",background:T.pill,borderRadius:20}}>
@@ -1669,8 +1647,6 @@ export default function App() {
           </div>
           <div style={{width:6,height:6,borderRadius:"50%",background:T.muted,opacity:0.5}}/>
         </div>
-
-        {/* Avatar */}
         <div style={{width:32,height:32,borderRadius:"50%",background:T.pill,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <circle cx="9" cy="6" r="3" stroke={T.sub} strokeWidth="1.5"/>
@@ -1679,23 +1655,32 @@ export default function App() {
         </div>
       </div>
 
-      {/* ── Scrollable content ── */}
-      <div style={{position:"absolute",top:TOP_H,bottom:TAB_BAR_H,left:0,right:0,overflowY:tab==="chat"?"hidden":"auto",background:T.bg}}>
-        {tab==="home"     && <HomeTab     onSelectAccount={handleSelectAccount} onSelectTicker={handleSelectTicker}/>}
-        {tab==="search"   && <SearchTab   onSelect={handleSelectTicker}/>}
-        {tab==="transfer" && (
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:12}}>
-            <div style={{fontSize:32}}>⇄</div>
-            <div style={{fontSize:15,fontWeight:600,color:T.text}}>Transfer</div>
-            <div style={{fontSize:13,color:T.sub}}>Move money between accounts</div>
-            <div style={{fontSize:11,color:T.muted,marginTop:4}}>Out of scope for Simple Research prototype</div>
-          </div>
-        )}
-        {tab==="chat"     && <ChatTab/>}
+      {/* ── Middle zone: scrollable content + overlays stacked on top ── */}
+      <div style={{position:"relative",flex:1,minHeight:0}}>
+        {/* Scrollable tab content */}
+        <div style={{position:"absolute",inset:0,overflowY:tab==="chat"?"hidden":"auto",background:T.bg}}>
+          {tab==="home"     && <HomeTab onSelectAccount={handleSelectAccount} onSelectTicker={handleSelectTicker}/>}
+          {tab==="search"   && <SearchTab onSelect={handleSelectTicker}/>}
+          {tab==="transfer" && (
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:12}}>
+              <div style={{fontSize:32}}>⇄</div>
+              <div style={{fontSize:15,fontWeight:600,color:T.text}}>Transfer</div>
+              <div style={{fontSize:13,color:T.sub}}>Move money between accounts</div>
+              <div style={{fontSize:11,color:T.muted,marginTop:4}}>Out of scope for Simple Research prototype</div>
+            </div>
+          )}
+          {tab==="chat" && <ChatTab/>}
+        </div>
+        {/* Overlay screens — stack on top of scroll area */}
+        {tickerInfo && <TickerScreen ticker={tickerInfo.ticker} acctType={tickerInfo.acctType} onBack={()=>setTickerInfo(null)}/>}
+        {!tickerInfo && acctId==="all"    && <AllAccountsScreen onBack={()=>setAcctId(null)} onSelectTicker={handleSelectTicker} onSelectAccount={handleSelectAccount} tabs={TABS} activeTab={tab} onTabChange={setTab}/>}
+        {!tickerInfo && acctId==="invest" && <InvestScreen      onBack={()=>setAcctId(null)} onSelectTicker={handleSelectTicker} onSelectAccount={handleSelectAccount} tabs={TABS} activeTab={tab} onTabChange={setTab}/>}
+        {!tickerInfo && acctId==="stocks" && <StocksScreen      onBack={()=>setAcctId(null)} onSelectTicker={handleSelectTicker} onSelectAccount={handleSelectAccount} tabs={TABS} activeTab={tab} onTabChange={setTab}/>}
+        {!tickerInfo && acctId && acctId!=="all" && acctId!=="stocks" && acctId!=="invest" && <AccountScreen acctId={acctId} onBack={()=>setAcctId(null)} onSelectTicker={handleSelectTicker} tabs={TABS} activeTab={tab} onTabChange={setTab}/>}
       </div>
 
-      {/* ── Fixed bottom tab bar ── */}
-      <div style={{position:"absolute",bottom:0,left:0,right:0,height:TAB_BAR_H,background:T.card,borderTop:`1px solid ${T.border}`,display:"flex",zIndex:50}}>
+      {/* ── Bottom tab bar ── */}
+      <div style={{flexShrink:0,height:TAB_BAR_H,background:T.card,borderTop:`1px solid ${T.border}`,display:"flex",zIndex:50}}>
         {TABS.map(t=>{
           const active = tab===t.id;
           return (
@@ -1709,6 +1694,5 @@ export default function App() {
         })}
       </div>
     </div>
-    </>
   );
 }
