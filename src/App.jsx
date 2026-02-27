@@ -27,11 +27,11 @@ const ACCOUNTS = {
     id: "tfsa", label: "TFSA", type: "TFSA",
     totalValue: 0, // computed
     positions: [
-      { ticker:"NVDA", name:"NVIDIA Corporation",        shares:3,   avgCost:480.00, currentPrice:875.40, sector:"Technology",    assetType:"EQUITY", lastPurchaseDate:"2024-09-10" },
-      { ticker:"TSLA", name:"Tesla Inc.",                shares:5,   avgCost:210.50, currentPrice:178.20, sector:"Technology",    assetType:"EQUITY", lastPurchaseDate:"2025-01-28" },
-      { ticker:"AMD",  name:"Advanced Micro Devices",    shares:8,   avgCost:142.00, currentPrice:162.80, sector:"Technology",    assetType:"EQUITY", lastPurchaseDate:"2024-08-15" },
+      { ticker:"NVDA", name:"NVIDIA Corporation",        shares:12,  avgCost:118.00, currentPrice:183.00, sector:"Technology",    assetType:"EQUITY", lastPurchaseDate:"2024-09-10" },
+      { ticker:"TSLA", name:"Tesla Inc.",                shares:5,   avgCost:285.00, currentPrice:408.00, sector:"Technology",    assetType:"EQUITY", lastPurchaseDate:"2025-01-28" },
+      { ticker:"AMD",  name:"Advanced Micro Devices",    shares:8,   avgCost:142.00, currentPrice:203.00, sector:"Technology",    assetType:"EQUITY", lastPurchaseDate:"2024-08-15" },
       { ticker:"VRT",  name:"Vertiv Holdings",           shares:10,  avgCost:94.50,  currentPrice:105.20, sector:"Technology",    assetType:"EQUITY", lastPurchaseDate:"2024-11-15" },
-      { ticker:"AMZN", name:"Amazon.com Inc.",           shares:4,   avgCost:178.00, currentPrice:205.60, sector:"Consumer",      assetType:"EQUITY", lastPurchaseDate:"2024-07-22" },
+      { ticker:"AMZN", name:"Amazon.com Inc.",           shares:4,   avgCost:178.00, currentPrice:208.00, sector:"Consumer",      assetType:"EQUITY", lastPurchaseDate:"2024-07-22" },
       { ticker:"COUR", name:"Coursera Inc.",             shares:50,  avgCost:18.40,  currentPrice:9.85,   sector:"Education",     assetType:"EQUITY", lastPurchaseDate:"2025-01-15" },
       { ticker:"NIO",  name:"NIO Inc.",                  shares:100, avgCost:8.20,   currentPrice:4.35,   sector:"Auto",          assetType:"EQUITY", lastPurchaseDate:"2024-10-05" },
       { ticker:"HIMX", name:"Himax Technologies",        shares:60,  avgCost:6.50,   currentPrice:7.90,   sector:"Technology",    assetType:"EQUITY", lastPurchaseDate:"2024-06-18" },
@@ -43,8 +43,8 @@ const ACCOUNTS = {
   nonreg: {
     id: "nonreg", label: "Non-Registered", type: "NON_REG",
     positions: [
-      { ticker:"AAPL", name:"Apple Inc.",            shares:10, avgCost:178.40, currentPrice:227.50, sector:"Technology", assetType:"EQUITY", lastPurchaseDate:"2024-06-01" },
-      { ticker:"MSFT", name:"Microsoft Corporation", shares:5,  avgCost:380.20, currentPrice:415.20, sector:"Technology", assetType:"EQUITY", lastPurchaseDate:"2024-07-15" },
+      { ticker:"AAPL", name:"Apple Inc.",            shares:10, avgCost:178.40, currentPrice:272.00, sector:"Technology", assetType:"EQUITY", lastPurchaseDate:"2024-06-01" },
+      { ticker:"MSFT", name:"Microsoft Corporation", shares:5,  avgCost:380.20, currentPrice:401.00, sector:"Technology", assetType:"EQUITY", lastPurchaseDate:"2024-07-15" },
       { ticker:"RY",   name:"Royal Bank of Canada",  shares:15, avgCost:132.60, currentPrice:148.60, sector:"Financials", assetType:"EQUITY", lastPurchaseDate:"2024-05-20" },
       { ticker:"ENB",  name:"Enbridge Inc.",          shares:40, avgCost:52.10,  currentPrice:59.20,  sector:"Energy",     assetType:"EQUITY", lastPurchaseDate:"2024-03-10" },
       { ticker:"IMG",  name:"First Majestic Silver",  shares:30, avgCost:7.80,   currentPrice:6.20,   sector:"Materials",  assetType:"EQUITY", lastPurchaseDate:"2025-01-20" },
@@ -53,9 +53,9 @@ const ACCOUNTS = {
   crypto: {
     id: "crypto", label: "Crypto", type: "CRYPTO",
     positions: [
-      { ticker:"BTC",  name:"Bitcoin",      shares:0.12, avgCost:42000, currentPrice:68400, sector:"Crypto", assetType:"CRYPTO", lastPurchaseDate:"2024-08-01" },
-      { ticker:"ETH",  name:"Ethereum",     shares:1.5,  avgCost:2200,  currentPrice:3840,  sector:"Crypto", assetType:"CRYPTO", lastPurchaseDate:"2024-09-15" },
-      { ticker:"SOL",  name:"Solana",       shares:8,    avgCost:95,    currentPrice:185,   sector:"Crypto", assetType:"CRYPTO", lastPurchaseDate:"2024-11-01" },
+      { ticker:"BTC",  name:"Bitcoin",      shares:0.12, avgCost:42000, currentPrice:87000, sector:"Crypto", assetType:"CRYPTO", lastPurchaseDate:"2024-08-01" },
+      { ticker:"ETH",  name:"Ethereum",     shares:1.5,  avgCost:2450,  currentPrice:2200,  sector:"Crypto", assetType:"CRYPTO", lastPurchaseDate:"2024-09-15" },
+      { ticker:"SOL",  name:"Solana",       shares:8,    avgCost:95,    currentPrice:148,   sector:"Crypto", assetType:"CRYPTO", lastPurchaseDate:"2024-11-01" },
     ]
   }
 };
@@ -67,7 +67,7 @@ Object.values(ACCOUNTS).forEach(a => {
 
 // ─── NEWS ────────────────────────────────
 const NEWS = {
-  NVDA: ["NVIDIA beats Q4 estimates, data center revenue +409% YoY","Blackwell GPU demand 'staggering' says CEO Jensen Huang","Morgan Stanley raises PT to $950 on AI tailwinds"],
+  NVDA: ["NVIDIA beats Q4 estimates, data center revenue +409% YoY","Blackwell GPU demand 'staggering' says CEO Jensen Huang","Morgan Stanley raises PT to $220 on Blackwell ramp"],
   TSLA: ["Tesla misses Q4 delivery estimates for second consecutive quarter","Cybertruck production ramp faces bottlenecks","Analysts split on 2025 outlook amid EV demand softening"],
   AMD:  ["AMD gains server share as EPYC adoption accelerates","MI300X AI chip seeing strong hyperscaler demand","Q4 revenue guidance in line, data center outperforms"],
   VRT:  ["Vertiv wins $400M data center cooling contract","Power management surge drives margin expansion","Goldman initiates with Buy, $130 PT"],
@@ -102,28 +102,28 @@ const COV = {
 
 // ─── MOCK RESEARCH ───────────────────────
 const RESEARCH = {
-  NVDA:{rating:"STRONG BUY",target:"$950",range:"$780–$1,150",earnings:"Q4 2024: Beat EPS by 19%, raised FY guidance.",bull:{firm:"Goldman Sachs",text:"Data center TAM expanding faster than supply — Blackwell cycle still early."},bear:{firm:"New Street",text:"Multiple pricing 3 years of perfection; any macro slowdown hits hard."}},
-  TSLA:{rating:"HOLD",target:"$215",range:"$130–$310",earnings:"Q4 2024: Missed delivery consensus 6%, margin compressed 17.6%.",bull:{firm:"Wedbush",text:"FSD monetization and energy storage provide non-vehicle upside."},bear:{firm:"UBS",text:"Core auto losing share; valuation depends on robotaxi not yet real."}},
-  AMD: {rating:"BUY",target:"$195",range:"$145–$250",earnings:"Q4 2024: Data center beat 12%, MI300X ahead of schedule.",bull:{firm:"BofA",text:"EPYC share gains taking from Intel across cloud providers."},bear:{firm:"Bernstein",text:"AI GPU still 80% NVDA — AMD is number two in winner-takes-most."}},
-  VRT: {rating:"BUY",target:"$130",range:"$98–$165",earnings:"Q3 2024: Beat EPS 12%, raised full-year guidance.",bull:{firm:"Goldman Sachs",text:"Power and cooling are the AI build-out bottleneck — VRT is the pick."},bear:{firm:"Morgan Stanley",text:"35x forward multiple — execution must remain flawless."}},
-  AMZN:{rating:"STRONG BUY",target:"$245",range:"$200–$285",earnings:"Q4 2024: AWS re-accelerated 19%, advertising +27%.",bull:{firm:"JPMorgan",text:"AWS margin expansion and ad flywheel create durable compounding."},bear:{firm:"Redburn",text:"Regulatory risk in EU and India creates overhang on e-commerce."}},
-  COUR:{rating:"HOLD",target:"$11",range:"$7–$16",earnings:"Q3 2024: Revenue missed consensus for third straight quarter.",bull:{firm:"Needham",text:"AI catalog differentiated — monetization lag is temporary."},bear:{firm:"Piper Sandler",text:"Free alternatives multiplying; paying user growth stalled."}},
-  NIO: {rating:"HOLD",target:"$5.50",range:"$3–$9",earnings:"Q4 2024: Deliveries below guidance; swap margins under pressure.",bull:{firm:"CICC",text:"ONVO sub-brand addresses mass market; volume leverage possible H2."},bear:{firm:"Nomura",text:"Cash burn requires dilutive capital raise before end of 2025."}},
-  HIMX:{rating:"BUY",target:"$9.50",range:"$6.50–$13",earnings:"Q2 2024: Automotive display recovery ahead of schedule.",bull:{firm:"Daiwa",text:"AR/VR design win with major OEM provides multi-year visibility."},bear:{text:"Consumer display dependent on uncertain China demand."}},
-  SIDU:{rating:"HOLD",target:"$1.10",range:"$0.60–$1.80",earnings:"Q2 2024: Revenue below guidance; liquidity tightened.",bull:{text:"Small government contracts provide near-term revenue floor."},bear:{text:"Going-concern risk flagged; sub-$1M quarterly revenue."}},
-  AMC: {rating:"SELL",target:"$2.50",range:"$1.50–$5",earnings:"Q3 2024: Box office recovery slower; interest expense high.",bull:{text:"Debt refinancing removes near-term bankruptcy risk."},bear:{firm:"Citi",text:"Structural theatrical decline; debt load requires perfection."}},
-  AAPL:{rating:"BUY",target:"$240",range:"$200–$270",earnings:"Q1 2025: Services record $26.3B, iPhone in-line.",bull:{firm:"Morgan Stanley",text:"Apple Intelligence driving upgrade supercycle in 2025–26."},bear:{firm:"Barclays",text:"China revenue declining fourth consecutive quarter."}},
-  MSFT:{rating:"STRONG BUY",target:"$480",range:"$420–$530",earnings:"Q2 FY25: Azure grew 31%, Copilot monetization ahead.",bull:{firm:"JPMorgan",text:"Enterprise AI adoption multi-year; Azure is Fortune 500 default."},bear:{firm:"KeyBanc",text:"35x forward limits upside without sustained execution."}},
-  RY:  {rating:"BUY",target:"$165",range:"$145–$180",earnings:"Q4 2024: Wealth management strong, provisions in line.",bull:{firm:"TD Securities",text:"HSBC Canada acquisition adds material revenue; ahead of schedule."},bear:{firm:"CIBC",text:"Canadian housing softening creates provision risk through 2025."}},
-  ENB: {rating:"BUY",target:"$66",range:"$56–$74",earnings:"Q3 2024: Mainline volumes strong, US acquisition performing.",bull:{firm:"RBC Capital",text:"6% yield with CPI-linked contracts — inflation-protected income."},bear:{firm:"Raymond James",text:"Regulatory tightening; permitting delays threaten growth capex."}},
-  IMG: {rating:"BUY",target:"$8.50",range:"$6–$12",earnings:"Q3 2024: Production beat on higher silver prices.",bull:{firm:"TD Securities",text:"Silver price tailwind from industrial and green energy demand."},bear:{firm:"Scotiabank",text:"Single-mine concentration at San Dimas; Mexico jurisdiction risk."}},
-  URAN:{rating:"BUY",target:"$34",range:"$28–$42",earnings:"N/A — ETF vehicle, no earnings.",bull:{text:"Nuclear capacity additions globally driving multi-year uranium demand."},bear:{text:"Kazatomprom supply return could pressure spot prices."}},
+  NVDA:{rating:"BUY",target:"$210",range:"$160–$260",earnings:"Q4 FY26: Beat EPS by 8%, Blackwell revenue $11B, guided Q1 above consensus.",bull:{firm:"Goldman Sachs",text:"Blackwell ramp still early — data center capex from hyperscalers accelerating into 2026."},bear:{firm:"New Street",text:"Stock pricing perfection; any demand softness or China export curbs hit hard."}},
+  TSLA:{rating:"HOLD",target:"$350",range:"$200–$500",earnings:"Q4 2025: Deliveries missed consensus; auto margins compressed to 13.6%.",bull:{firm:"Wedbush",text:"FSD and robotaxi optionality not priced in — energy storage a sleeper catalyst."},bear:{firm:"UBS",text:"Core EV losing share to BYD; valuation requires robotaxi success that isn't proven."}},
+  AMD: {rating:"BUY",target:"$261",range:"$180–$358",earnings:"Q4 2025: Data center revenue $3.9B, MI300X ahead of schedule.",bull:{firm:"Mizuho",text:"Multi-year Meta GPU deal worth up to $60B — first real NVDA alternative at scale."},bear:{firm:"Bernstein",text:"AI GPU market still 80% NVDA; AMD is a strong #2 in a winner-takes-most dynamic."}},
+  VRT: {rating:"BUY",target:"$130",range:"$98–$165",earnings:"Q3 2025: Beat EPS 12%, raised full-year guidance on data center cooling demand.",bull:{firm:"Goldman Sachs",text:"Power and cooling are the AI build-out bottleneck — VRT is the infrastructure pick."},bear:{firm:"Morgan Stanley",text:"35x forward multiple leaves no room for execution misses."}},
+  AMZN:{rating:"STRONG BUY",target:"$280",range:"$230–$320",earnings:"Q4 2025: AWS accelerated to 21% growth, advertising +24%.",bull:{firm:"JPMorgan",text:"AWS margin expansion and ad flywheel create durable compounding well into 2027."},bear:{firm:"Redburn",text:"Regulatory overhang in EU and antitrust scrutiny on ad business."}},
+  COUR:{rating:"HOLD",target:"$11",range:"$7–$16",earnings:"Q3 2025: Revenue missed consensus for third straight quarter.",bull:{firm:"Needham",text:"AI-enhanced course catalog differentiated — monetization lag should be temporary."},bear:{firm:"Piper Sandler",text:"Free alternatives multiplying; paying user growth has stalled."}},
+  NIO: {rating:"HOLD",target:"$5.50",range:"$3–$9",earnings:"Q4 2025: Deliveries below guidance; swap station margins under pressure.",bull:{firm:"CICC",text:"ONVO sub-brand targets mass market — volume leverage possible in H2 2026."},bear:{firm:"Nomura",text:"Cash burn pace requires dilutive capital raise; balance sheet a concern."}},
+  HIMX:{rating:"BUY",target:"$9.50",range:"$6.50–$13",earnings:"Q3 2025: Automotive display recovery ahead of schedule.",bull:{firm:"Daiwa",text:"AR/VR design win with major OEM provides multi-year revenue visibility."},bear:{text:"Consumer display segment dependent on uncertain China end-market demand."}},
+  SIDU:{rating:"HOLD",target:"$1.10",range:"$0.60–$1.80",earnings:"Q3 2025: Revenue below guidance; liquidity tightened.",bull:{text:"Small government contracts provide near-term revenue floor."},bear:{text:"Going-concern risk flagged; sub-$1M quarterly revenue remains a concern."}},
+  AMC: {rating:"SELL",target:"$2.50",range:"$1.50–$5",earnings:"Q3 2025: Box office recovery slower than projected; interest expense elevated.",bull:{text:"Debt refinancing removes near-term bankruptcy risk."},bear:{firm:"Citi",text:"Structural theatrical decline continues; debt load requires execution perfection."}},
+  AAPL:{rating:"BUY",target:"$290",range:"$240–$330",earnings:"Q1 FY26: Services hit record $27.9B, iPhone slightly below estimates.",bull:{firm:"Morgan Stanley",text:"Apple Intelligence driving upgrade supercycle — installed base of 2.2B devices."},bear:{firm:"Barclays",text:"China revenue declining for fourth consecutive quarter; regulatory risk rising."}},
+  MSFT:{rating:"STRONG BUY",target:"$480",range:"$420–$540",earnings:"Q2 FY26: Azure grew 31%, Copilot seats ahead of expectations.",bull:{firm:"JPMorgan",text:"Enterprise AI adoption is multi-year; Azure is the Fortune 500 default cloud."},bear:{firm:"KeyBanc",text:"35x forward P/E limits upside without sustained execution on AI monetization."}},
+  RY:  {rating:"BUY",target:"$170",range:"$150–$185",earnings:"Q1 FY26: Wealth management strong; credit provisions in line with guidance.",bull:{firm:"TD Securities",text:"HSBC Canada integration ahead of schedule — adds meaningful fee revenue."},bear:{firm:"CIBC",text:"Canadian housing correction risk creates provision uncertainty through 2026."}},
+  ENB: {rating:"BUY",target:"$66",range:"$56–$74",earnings:"Q3 2025: Mainline volumes strong; US Gulf Coast acquisition performing well.",bull:{firm:"RBC Capital",text:"6% dividend yield with CPI-linked contracts — rare inflation-protected income."},bear:{firm:"Raymond James",text:"Permitting delays on growth projects threaten 2026 capex deployment."}},
+  IMG: {rating:"BUY",target:"$8.50",range:"$6–$12",earnings:"Q3 2025: Production beat on higher silver prices.",bull:{firm:"TD Securities",text:"Silver price tailwind from industrial and green energy transition demand."},bear:{firm:"Scotiabank",text:"Single-mine concentration at San Dimas; Mexico jurisdiction risk persists."}},
+  URAN:{rating:"BUY",target:"$34",range:"$28–$42",earnings:"N/A — ETF vehicle, no earnings.",bull:{text:"Nuclear capacity additions globally driving multi-year uranium demand cycle."},bear:{text:"Kazatomprom supply resumption could pressure spot uranium prices."}},
 };
 
 const SEARCH_EXTRA = [
-  {ticker:"GOOG",name:"Alphabet Inc.",currentPrice:194.30,sector:"Technology",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
-  {ticker:"META",name:"Meta Platforms",currentPrice:612.80,sector:"Technology",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
-  {ticker:"SHOP",name:"Shopify Inc.",currentPrice:118.40,sector:"Technology",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
+  {ticker:"GOOG",name:"Alphabet Inc.",currentPrice:307.00,sector:"Technology",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
+  {ticker:"META",name:"Meta Platforms",currentPrice:655.00,sector:"Technology",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
+  {ticker:"SHOP",name:"Shopify Inc.",currentPrice:126.00,sector:"Technology",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
   {ticker:"TD",name:"Toronto-Dominion Bank",currentPrice:76.40,sector:"Financials",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
   {ticker:"CNR",name:"Canadian National Railway",currentPrice:158.20,sector:"Industrials",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
   {ticker:"SU",name:"Suncor Energy",currentPrice:56.80,sector:"Energy",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
@@ -221,6 +221,32 @@ CANADIAN TAX: TFSA tax-free (ITA 146). Non-reg 50% inclusion. Superficial loss 3
 DISCLAIMER: End every response: "This is informational only and does not constitute financial, investment, or tax advice."`;
 }
 
+// ─── API HELPER ──────────────────────────────────────────────────────────────
+// Tries /api/claude proxy (Netlify deployment) first, then falls back to direct
+// Anthropic API which works in the Claude artifact sandbox.
+async function callClaude(body) {
+  try {
+    const r = await fetch("/api/claude", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(3000)
+    });
+    if (r.ok) { const d = await r.json(); if (d.content) return d; }
+  } catch(e) { /* proxy unavailable, fall through */ }
+  // Direct call — works in Claude artifact sandbox (key injected automatically)
+  // and on local dev if window.__ANTHROPIC_KEY__ is set
+  const headers = {
+    "Content-Type":"application/json",
+    "anthropic-version":"2023-06-01",
+    "anthropic-beta":"prompt-caching-2024-07-31",
+  };
+  if (window.__ANTHROPIC_KEY__) headers["x-api-key"] = window.__ANTHROPIC_KEY__;
+  const r2 = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST", headers, body: JSON.stringify(body)
+  });
+  return r2.json();
+}
+
 // ─── RESEARCH PANEL PROMPT ───────────────
 function buildResearchPrompt(pos, acctType, news, isOwned) {
   const nc = (news||[]).filter(Boolean);
@@ -228,25 +254,20 @@ function buildResearchPrompt(pos, acctType, news, isOwned) {
   const posCtx = isOwned
     ? `${pos.ticker} (${pos.name}) | Account: ${acctType} | ${pos.shares} shares | Avg cost $${pos.avgCost} | Current $${pos.currentPrice} | Last bought: ${pos.lastPurchaseDate}`
     : `${pos.ticker} (${pos.name}) | Current $${pos.currentPrice} | Not in portfolio`;
-  return `You are Simple Research, a financial research assistant inside Wealthsimple. NOT a financial advisor.
+  return `You are Simple Research inside Wealthsimple. NOT a financial advisor.
 
 USER POSITION: ${posCtx}${newsCtx}
 
-TASK: Fetch current analyst data for ${pos.ticker} using web search. Return a structured research summary with:
-1. Consensus rating (STRONG BUY / BUY / HOLD / SELL)
-2. Average price target with range (e.g. "$142.00 (Range: $110 – $175)")
-3. Analyst count (e.g. "Based on 38 analysts")
-4. Last earnings — one sentence (beat/miss, key metric)
-5. Bull case — name the firm and their specific thesis (e.g. "Morgan Stanley (Buy, $175 PT): data centre demand accelerating...")
-6. Bear case — name the firm and their specific risk (e.g. "Bernstein (Hold, $118 PT): margin compression risk...")
+TASK: Search for current analyst data on ${pos.ticker}. Reply in EXACTLY this format — no extra text:
 
-HARD RULES:
-- Source attribution before the data, always
-- No buy/sell recommendations
-- End with: "This is informational only and does not constitute financial, investment, or tax advice."
-- Then output CITATIONS block:
-[CITATION: Firm | Claim | Date]
-Include 3-4 citations. Always include consensus source and one each for bull/bear firm.`;
+CONSENSUS: [BUY/STRONG BUY/HOLD/SELL] · $[avg PT] avg PT · [N] analysts
+EARNINGS: [one clause, e.g. Q4 beat: EPS $X vs $Y est.]
+BULL: [Firm ($PT)]: [one-line thesis]
+BEAR: [Firm ($PT)]: [one-line risk]
+
+Then: [CITATION: Firm | Claim | Date] — 2-3 only.
+
+No preamble. No extra lines. No disclaimer.`;
 }
 
 // ─── CITATION PARSER ─────────────────────
@@ -261,6 +282,21 @@ function parseCitations(text) {
 }
 function stripCitations(text) {
   return text.replace(/\[CITATION:[^\]]+\]/g, '').replace(/\nCITATIONS:\n?/g, '').trim();
+}
+
+// ─── RESEARCH RESPONSE PARSER ───────────────
+// Parses the labeled 4-line format into structured fields
+function parseResearch(text) {
+  const get = (label) => {
+    const m = text.match(new RegExp(label + ':?\\s*(.+)', 'i'));
+    return m ? m[1].trim() : null;
+  };
+  return {
+    consensus: get('CONSENSUS'),
+    earnings:  get('EARNINGS'),
+    bull:      get('BULL'),
+    bear:      get('BEAR'),
+  };
 }
 
 // ─── PRICE CHART ─────────────────────────
@@ -379,30 +415,22 @@ function TickerScreen({ ticker, acctType, onBack }) {
 
     const sysPrompt = buildResearchPrompt(pos, effectiveAcctType, news, isOwned);
 
-    // Prompt caching: system prompt is marked cache_control so Anthropic caches it
-    // at 90% reduced cost on repeat calls for the same ticker in the same session
-    fetch("/api/claude", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      signal: controller.signal,
-      body: JSON.stringify({
-        model:"claude-sonnet-4-20250514",
-        max_tokens:1200,
-        system:[{
-          type:"text",
-          text: sysPrompt,
-          cache_control:{ type:"ephemeral" }   // prompt caching — reduces input token cost ~90%
-        }],
-        tools:[{ type:"web_search_20250305", name:"web_search" }],
-        messages:[{ role:"user", content:`Fetch current analyst research for ${ticker}. Use web search to find the latest consensus rating, price targets, bull case, and bear case. Be specific about which firms said what.` }]
-      })
+    callClaude({
+      model:"claude-sonnet-4-20250514",
+      max_tokens:400,
+      system:[{
+        type:"text",
+        text: sysPrompt,
+        cache_control:{ type:"ephemeral" }
+      }],
+      tools:[{ type:"web_search_20250305", name:"web_search" }],
+      messages:[{ role:"user", content:`Fetch current analyst research for ${ticker}. Use web search to find the latest consensus rating, price targets, bull case, and bear case. Be specific about which firms said what.` }]
     })
-    .then(r=>r.json())
     .then(d=>{
       clearTimeout(timeout);
       const raw = d.content?.filter(b=>b.type==="text").map(b=>b.text).join("") || "";
       if(raw) { setLiveRes(raw); setShowRes(true); }
-      else setResError(true);
+      else { setResError(true); setShowRes(true); }
     })
     .catch(()=>{ clearTimeout(timeout); setResError(true); setShowRes(true); })
     .finally(()=>setLoadingRes(false));
@@ -422,18 +450,13 @@ function TickerScreen({ ticker, acctType, onBack }) {
     setSending(true);
     try {
       const sysPrompt = buildSysPrompt(pos, effectiveAcctType, news, isOwned);
-      const r=await fetch("/api/claude",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
+      const d=await callClaude({
           model:"claude-sonnet-4-20250514",
           max_tokens:1000,
-          // Prompt caching: system prompt cached server-side — ~90% cheaper on repeat turns
           system:[{ type:"text", text:sysPrompt, cache_control:{ type:"ephemeral" } }],
           tools:[{ type:"web_search_20250305", name:"web_search" }],
           messages:msgs
-        })
       });
-      const d=await r.json();
       const raw=d.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"Research unavailable.";
       const citations=parseCitations(raw);
       const reply=stripCitations(raw);
@@ -471,8 +494,8 @@ function TickerScreen({ ticker, acctType, onBack }) {
             </div>
             {isOwned && (
               <div style={{textAlign:"right"}}>
-                <div style={{fontSize:13,fontWeight:700,color:up?T.green:T.red}}>{up?"+":""}{pct}%</div>
-                <div style={{fontSize:11,color:up?T.green:T.red,opacity:0.8}}>{up?"+":""}{gfmt(pnl)} total</div>
+                <div style={{fontSize:13,fontWeight:700,color:up?T.green:T.red}}>{up?"+":""}{pct}% all time</div>
+                <div style={{fontSize:11,color:up?T.green:T.red,opacity:0.8}}>{up?"+":""}{gfmt(pnl)} unrealized</div>
                 <div style={{fontSize:10,color:T.muted}}>{pos.shares} shares · avg ${pos.avgCost.toFixed(2)}</div>
               </div>
             )}
@@ -555,36 +578,42 @@ function TickerScreen({ ticker, acctType, onBack }) {
                 </div>
               ) : liveRes ? (
                 <>
-                  {/* ── Live research: render parsed citations + clean text ── */}
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                    <div style={{fontSize:10,color:T.muted,display:"flex",alignItems:"center",gap:5}}>
-                      <div style={{width:6,height:6,borderRadius:"50%",background:T.green}}/>
-                      Live · {new Date().toLocaleDateString("en-CA")}
-                    </div>
-                    <div style={{fontSize:9,padding:"2px 7px",background:T.greenBg,borderRadius:8,color:T.greenTx,fontWeight:600,border:`1px solid #BBF7D0`}}>
-                      Web search grounded
-                    </div>
-                  </div>
-                  <div style={{fontSize:12,color:T.text,lineHeight:1.75,whiteSpace:"pre-wrap",marginBottom:12}}>
-                    {stripCitations(liveRes)}
-                  </div>
-                  {/* Citations from live response */}
-                  {parseCitations(liveRes).length>0&&(
-                    <div style={{borderTop:`1px solid ${T.border2}`,paddingTop:10,marginTop:4}}>
-                      <div style={{fontSize:9,fontWeight:700,color:T.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Sources</div>
-                      <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                        {parseCitations(liveRes).map((c,i)=>(
-                          <div key={i} style={{display:"flex",alignItems:"flex-start",gap:6,padding:"6px 8px",background:T.bg,borderRadius:7,borderLeft:`2px solid ${T.ws}`}}>
-                            <div style={{flex:1}}>
-                              <div style={{fontSize:10,fontWeight:600,color:T.text}}>{c.source}</div>
-                              <div style={{fontSize:10,color:T.sub,lineHeight:1.4,marginTop:1}}>{c.claim}</div>
-                              <div style={{fontSize:9,color:T.muted,marginTop:2}}>{c.date}</div>
-                            </div>
+                  {/* ── Consensus row ── */}
+                  {(()=>{
+                    const r = parseResearch(liveRes);
+                    const cites = parseCitations(liveRes);
+                    return (
+                      <>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                          <span style={{fontSize:10,fontWeight:700,color:T.text}}>{r.consensus || "Analyst Consensus"}</span>
+                          <div style={{fontSize:9,padding:"2px 7px",background:T.greenBg,borderRadius:8,color:T.greenTx,fontWeight:600,border:`1px solid #BBF7D0`,display:"flex",alignItems:"center",gap:4}}>
+                            <div style={{width:5,height:5,borderRadius:"50%",background:T.green}}/>
+                            Live
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                        </div>
+                        {r.earnings&&<div style={{fontSize:11,color:T.sub,marginBottom:10,lineHeight:1.5}}>{r.earnings}</div>}
+                        {/* Bull / Bear grid */}
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                          <div style={{padding:"10px",background:T.greenBg,borderRadius:10,border:`1px solid #BBF7D0`}}>
+                            <div style={{fontSize:9,fontWeight:700,color:T.greenTx,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>▲ Bull</div>
+                            <div style={{fontSize:11,color:T.text,lineHeight:1.5}}>{r.bull||"—"}</div>
+                          </div>
+                          <div style={{padding:"10px",background:T.redBg,borderRadius:10,border:`1px solid #FECACA`}}>
+                            <div style={{fontSize:9,fontWeight:700,color:T.redTx,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>▼ Bear</div>
+                            <div style={{fontSize:11,color:T.text,lineHeight:1.5}}>{r.bear||"—"}</div>
+                          </div>
+                        </div>
+                        {/* Citations */}
+                        {cites.length>0&&(
+                          <div style={{borderTop:`1px solid ${T.border2}`,paddingTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
+                            {cites.map((c,i)=>(
+                              <span key={i} style={{fontSize:9,padding:"2px 7px",background:T.pill,borderRadius:10,color:T.sub,border:`1px solid ${T.border}`}}>{c.source} · {c.date}</span>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </>
               ) : (
                 <div style={{fontSize:13,color:T.sub,textAlign:"center",padding:"10px 0"}}>No analyst data found for {ticker}.</div>
