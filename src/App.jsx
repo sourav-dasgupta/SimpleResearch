@@ -474,7 +474,7 @@ function TickerScreen({ ticker, acctType, onBack }) {
           max_tokens:1000,
           system:[{ type:"text", text:sysPrompt, cache_control:{ type:"ephemeral" } }],
           tools:[{ type:"web_search_20250305", name:"web_search" }],
-          messages:msgs
+          messages:msgs.map(({role,content})=>({role,content}))
       });
       const raw=d.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"Research unavailable.";
       const citations=parseCitations(raw);
@@ -555,7 +555,7 @@ function TickerScreen({ ticker, acctType, onBack }) {
           <div style={{margin:"10px 16px 0",padding:"18px 16px",background:T.card,border:`1px solid ${T.border}`,borderRadius:10,textAlign:"center"}}>
             <div style={{fontSize:20,marginBottom:7}}>🔬</div>
             <div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:5}}>Crypto Research Coming Soon</div>
-            <div style={{fontSize:12,color:T.sub,lineHeight:1.6}}>Analyst coverage, on-chain metrics, and staking yield data are in development for V2. Tax context still applies.</div>
+            <div style={{fontSize:12,color:T.sub,lineHeight:1.6}}>Analyst coverage, on-chain metrics, and staking yield data are in development for V2 — including Ask Simple Research for crypto positions. Tax context still applies.</div>
           </div>
         )}
 
@@ -564,7 +564,7 @@ function TickerScreen({ ticker, acctType, onBack }) {
           <div style={{margin:"10px 16px 0",padding:"18px 16px",background:T.card,border:`1px solid ${T.border}`,borderRadius:10,textAlign:"center"}}>
             <div style={{fontSize:20,marginBottom:7}}>📊</div>
             <div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:5}}>ETF Research Coming Soon</div>
-            <div style={{fontSize:12,color:T.sub,lineHeight:1.6}}>Expense ratio, benchmark tracking, and holdings breakdown are in development. Tax context still applies.</div>
+            <div style={{fontSize:12,color:T.sub,lineHeight:1.6}}>Expense ratio, benchmark tracking, and holdings breakdown are in development for V2 — including Ask Simple Research for ETF positions. Tax context still applies.</div>
           </div>
         )}
 
@@ -599,7 +599,11 @@ function TickerScreen({ ticker, acctType, onBack }) {
                     bull: res.bull ? `${res.bull.firm ? res.bull.firm+": " : ""}${res.bull.text}` : null,
                     bear: res.bear ? `${res.bear.firm ? res.bear.firm+": " : ""}${res.bear.text}` : null,
                   } : null;
-                  const cites = liveRes ? parseCitations(liveRes) : [];
+                  // Build citations from mock data when liveRes unavailable
+                  const cites = liveRes ? parseCitations(liveRes) : res ? [
+                    ...(res.bull?.firm ? [{source:res.bull.firm, claim:"Bull case", date:"Cached"}] : []),
+                    ...(res.bear?.firm ? [{source:res.bear.firm, claim:"Bear case", date:"Cached"}] : []),
+                  ] : [];
                   const isLive = !!liveRes;
                   if(!r) return <div style={{fontSize:13,color:T.sub,textAlign:"center",padding:"10px 0"}}>No analyst data available for {ticker}.</div>;
                   return (
@@ -1116,20 +1120,6 @@ function AllAccountsScreen({ onBack, onSelectTicker, onSelectAccount, tabs, acti
         ))}
       </div>
 
-      {/* Fixed bottom tab bar */}
-      <div style={{borderTop:`1px solid ${T.border}`,background:T.card,display:"flex",flexShrink:0,zIndex:50,height:62}}>
-        {tabs.map(t=>{
-          const active = activeTab===t.id;
-          return (
-            <button key={t.id} onClick={()=>{ onBack(); onTabChange(t.id); }}
-              style={{flex:1,padding:"10px 8px 12px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative"}}>
-              {t.icon(active)}
-              <span style={{fontSize:9,fontWeight:active?700:400,color:active?T.ws:T.muted,letterSpacing:"0.04em",textTransform:"uppercase"}}>{t.label}</span>
-              {active&&<div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,background:T.ws,borderRadius:1}}/>}
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -1234,20 +1224,6 @@ function AccountScreen({ acctId, onBack, onSelectTicker, tabs, activeTab, onTabC
         </div>
       </div>
 
-      {/* Fixed bottom tab bar — light theme (account screens are always light) */}
-      <div style={{borderTop:`1px solid ${T.border}`,background:T.card,display:"flex",flexShrink:0,zIndex:50,height:62}}>
-        {tabs.map(t=>{
-          const active = activeTab===t.id;
-          return (
-            <button key={t.id} onClick={()=>{ onBack(); onTabChange(t.id); }}
-              style={{flex:1,padding:"10px 8px 12px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative"}}>
-              {t.icon(active)}
-              <span style={{fontSize:9,fontWeight:active?700:400,color:active?T.ws:T.muted,letterSpacing:"0.04em",textTransform:"uppercase"}}>{t.label}</span>
-              {active&&<div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,background:T.ws,borderRadius:1}}/>}
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -1728,7 +1704,7 @@ export default function App() {
         {TABS.map(t=>{
           const active = tab===t.id;
           return (
-            <button key={t.id} onClick={()=>setTab(t.id)}
+            <button key={t.id} onClick={()=>{ setTab(t.id); setAcctId(null); setTickerInfo(null); }}
               style={{flex:1,padding:"10px 8px 12px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative"}}>
               {t.icon(active)}
               <span style={{fontSize:9,fontWeight:active?700:400,color:active?tabActive:tabInactive,letterSpacing:"0.04em",textTransform:"uppercase",transition:"color 0.15s"}}>{t.label}</span>
