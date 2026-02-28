@@ -291,10 +291,20 @@ No preamble. No extra lines. No disclaimer.`;
 function parseCitations(text) {
   const lines = text.split('\n');
   const citations = [];
+  // Primary: explicit [CITATION: Firm | Claim | Date] blocks
   lines.forEach(line => {
     const m = line.match(/\[CITATION:\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\]/);
     if (m) citations.push({ source: m[1].trim(), claim: m[2].trim(), date: m[3].trim() });
   });
+  // Fallback: extract firm names from BULL/BEAR lines e.g. "BULL: Morgan Stanley ($250): ..."
+  if (citations.length === 0) {
+    lines.forEach(line => {
+      const bull = line.match(/^BULL:\s*([^($\n]+?)\s*\(\$/);
+      const bear = line.match(/^BEAR:\s*([^($\n]+?)\s*\(\$/);
+      if (bull) citations.push({ source: bull[1].trim(), claim: "Bull case", date: "Live" });
+      if (bear) citations.push({ source: bear[1].trim(), claim: "Bear case", date: "Live" });
+    });
+  }
   return citations;
 }
 function stripCitations(text) {
@@ -1294,9 +1304,13 @@ RULES: No buy/sell recommendations. "Decision is yours" when asked. End every re
     const text=input.trim();if(!text||loading)return;setInput("");
     const um={role:"user",content:text};const msgs=[...messages,um];setMessages(msgs);setLoading(true);
     try{
-      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:msgs})});
-      const d=await r.json();
-      setMessages(prev=>[...prev,{role:"assistant",content:d.content?.map(b=>b.text||"").join("")||"Research unavailable."}]);
+      const d=await callClaude({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1000,
+        system:[{type:"text",text:sys,cache_control:{type:"ephemeral"}}],
+        messages:msgs.map(({role,content})=>({role,content}))
+      });
+      setMessages(prev=>[...prev,{role:"assistant",content:d.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"Research unavailable."}]);
     }catch{setMessages(prev=>[...prev,{role:"assistant",content:"Unable to connect."}]);}
     setLoading(false);
   };
