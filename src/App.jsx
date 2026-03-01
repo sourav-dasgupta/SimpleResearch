@@ -1400,7 +1400,7 @@ RULES: No buy/sell recommendations. "Decision is yours" when asked. End every re
               Research cap reached (5 messages per session).
             </div>
           )}
-          <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Ask about any stock or your portfolio..." disabled={messages.filter(m=>m.role==="user").length >= MAX_CHAT || (hasReachedDailyTickerCap(ticker) && messages.length === 0)}
+          <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Ask about any stock or your portfolio..." disabled={messages.filter(m=>m.role==="user").length >= MAX_CHAT}
             style={{flex:1,background:T.bg,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px",color:T.text,fontSize:16,outline:"none",fontFamily:"inherit"}}
             onFocus={e=>e.target.style.borderColor=T.text} onBlur={e=>e.target.style.borderColor=T.border}/>
           <button onClick={send} disabled={loading||!input.trim()}
