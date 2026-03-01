@@ -264,6 +264,40 @@ async function callClaude(body) {
   return r2.json();
 }
 
+// ─── RESEARCH CACHE (4-hour TTL, shared across all users in session) ──────────
+const RESEARCH_CACHE = new Map(); // ticker -> { raw, ts }
+const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours in ms
+
+function getCachedResearch(ticker) {
+  const entry = RESEARCH_CACHE.get(ticker);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL) { RESEARCH_CACHE.delete(ticker); return null; }
+  return entry.raw;
+}
+function setCachedResearch(ticker, raw) {
+  RESEARCH_CACHE.set(ticker, { raw, ts: Date.now() });
+}
+
+// ─── DAILY TICKER CHAT CAP (5 tickers/day, resets at midnight) ───────────────
+const dailyChatState = { date: new Date().toDateString(), tickers: new Set() };
+
+function getDailyChatState() {
+  const today = new Date().toDateString();
+  if (dailyChatState.date !== today) {
+    dailyChatState.date = today;
+    dailyChatState.tickers.clear();
+  }
+  return dailyChatState;
+}
+function hasReachedDailyTickerCap(ticker) {
+  const state = getDailyChatState();
+  if (state.tickers.has(ticker)) return false; // already used today, allowed
+  return state.tickers.size >= 5;
+}
+function markTickerUsed(ticker) {
+  getDailyChatState().tickers.add(ticker);
+}
+
 // ─── RESEARCH PANEL PROMPT ───────────────
 function buildResearchPrompt(pos, acctType, news, isOwned) {
   const nc = (news||[]).filter(Boolean);
@@ -430,23 +464,19 @@ function TickerScreen({ ticker, acctType, onBack }) {
   const up  = isOwned ? isPos(pos.currentPrice, pos.avgCost) : true;
   const chartColor = up ? T.green : T.red;
 
-  // ── Live research fetch — 30s timeout, falls back to mock RESEARCH data ──
+  // ── Live research fetch — 4hr cache, 30s timeout, falls back to mock ──
   useEffect(()=>{
     if(isCrypto||isETF){setLoadingRes(false);return;}
+
+    // Check 4-hour cache first
+    const cached = getCachedResearch(ticker);
+    if(cached){ setLiveRes(cached); setLoadingRes(false); return; }
+
     setLoadingRes(true);
     setLiveRes(null);
-    setResError(false);
 
     const sysPrompt = buildResearchPrompt(pos, effectiveAcctType, news, isOwned);
-
-    const fallbackToMock = () => {
-      setLiveRes(null);
-      setResError(false);
-      setLoadingRes(false);
-      // resError stays false — renderer will use mock RESEARCH[ticker] as fallback
-    };
-
-    const timer = setTimeout(()=>{ fallbackToMock(); }, 30000);
+    const timer = setTimeout(()=>setLoadingRes(false), 30000);
 
     callClaude({
       model:"claude-sonnet-4-20250514",
@@ -458,10 +488,9 @@ function TickerScreen({ ticker, acctType, onBack }) {
     .then(d=>{
       clearTimeout(timer);
       const raw = d.content?.filter(b=>b.type==="text").map(b=>b.text).join("") || "";
-      if(raw){ setLiveRes(raw); }
-      // if empty, falls through to mock automatically
+      if(raw){ setCachedResearch(ticker, raw); setLiveRes(raw); }
     })
-    .catch(()=>{ clearTimeout(timer); })
+    .catch(()=>clearTimeout(timer))
     .finally(()=>setLoadingRes(false));
 
     return ()=>clearTimeout(timer);
@@ -469,9 +498,14 @@ function TickerScreen({ ticker, acctType, onBack }) {
 
   useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
 
+  const MAX_CHAT = 5;
+  const MAX_TICKERS = 5;
   const sendChat = async () => {
     const text=input.trim();
     if(!text||sending) return;
+    if(messages.filter(m=>m.role==="user").length >= MAX_CHAT) return;
+    if(hasReachedDailyTickerCap(ticker)) return;
+    markTickerUsed(ticker);
     setInput("");
     const um={role:"user",content:text};
     const msgs=[...messages,um];
@@ -750,8 +784,18 @@ function TickerScreen({ ticker, acctType, onBack }) {
             </div>
             {/* Input */}
             <div style={{borderTop:`1px solid ${T.border2}`,padding:"9px 11px",display:"flex",gap:7,background:T.card}}>
-              <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Ask about analyst views or tax..."
-                style={{flex:1,background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px",color:T.text,fontSize:12,outline:"none",fontFamily:"inherit"}}
+              {hasReachedDailyTickerCap(ticker) && messages.length === 0 && (
+                <div style={{padding:"8px 12px",background:"#FFF8E7",border:"1px solid #FDE68A",borderRadius:8,fontSize:11,color:"#92400E",marginBottom:6,textAlign:"center"}}>
+                  Daily limit reached (5 tickers/day). Resets at midnight.
+                </div>
+              )}
+              {messages.filter(m=>m.role==="user").length >= MAX_CHAT && (
+                <div style={{padding:"8px 12px",background:"#FFF8E7",border:"1px solid #FDE68A",borderRadius:8,fontSize:11,color:"#92400E",marginBottom:6,textAlign:"center"}}>
+                  Research cap reached (5 messages per ticker).
+                </div>
+              )}
+              <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Ask about analyst views or tax..." disabled={messages.filter(m=>m.role==="user").length >= MAX_CHAT || (hasReachedDailyTickerCap(ticker) && messages.length === 0)}
+                style={{flex:1,background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px",color:T.text,fontSize:16,outline:"none",fontFamily:"inherit"}}
                 onFocus={e=>e.target.style.borderColor=T.ws} onBlur={e=>e.target.style.borderColor=T.border}/>
               <button onClick={sendChat} disabled={sending||!input.trim()}
                 style={{padding:"8px 14px",background:input.trim()?T.ws:T.border,border:"none",borderRadius:8,color:input.trim()?T.card:T.sub,cursor:input.trim()?"pointer":"default",fontSize:15,fontWeight:700}}>↑</button>
@@ -1300,8 +1344,11 @@ function ChatTab() {
 PORTFOLIO: TFSA + Non-Reg + Crypto accounts, total ~$${Math.round(totalVal).toLocaleString()} CAD. Positions: ${summary}
 RULES: No buy/sell recommendations. "Decision is yours" when asked. End every response: "This is informational only and does not constitute financial, investment, or tax advice."`;
   useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
+  const MAX_CHAT = 5;
   const send=async()=>{
-    const text=input.trim();if(!text||loading)return;setInput("");
+    const text=input.trim();if(!text||loading)return;
+    if(messages.filter(m=>m.role==="user").length >= MAX_CHAT){setInput("");return;}
+    setInput("");
     const um={role:"user",content:text};const msgs=[...messages,um];setMessages(msgs);setLoading(true);
     try{
       const d=await callClaude({
@@ -1348,8 +1395,13 @@ RULES: No buy/sell recommendations. "Decision is yours" when asked. End every re
       </div>
       <div style={{borderTop:`1px solid ${T.border}`,padding:"10px 14px 12px",background:T.card,flexShrink:0}}>
         <div style={{display:"flex",gap:7}}>
-          <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Ask about any stock or your portfolio..."
-            style={{flex:1,background:T.bg,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px",color:T.text,fontSize:13,outline:"none",fontFamily:"inherit"}}
+          {messages.filter(m=>m.role==="user").length >= MAX_CHAT && (
+            <div style={{padding:"8px 12px",background:"#FFF8E7",border:"1px solid #FDE68A",borderRadius:8,fontSize:11,color:"#92400E",marginBottom:6,textAlign:"center"}}>
+              Research cap reached (5 messages per session).
+            </div>
+          )}
+          <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Ask about any stock or your portfolio..." disabled={messages.filter(m=>m.role==="user").length >= MAX_CHAT || (hasReachedDailyTickerCap(ticker) && messages.length === 0)}
+            style={{flex:1,background:T.bg,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px",color:T.text,fontSize:16,outline:"none",fontFamily:"inherit"}}
             onFocus={e=>e.target.style.borderColor=T.text} onBlur={e=>e.target.style.borderColor=T.border}/>
           <button onClick={send} disabled={loading||!input.trim()}
             style={{padding:"11px 15px",background:input.trim()?T.ws:T.border,border:"none",borderRadius:10,color:input.trim()?T.card:T.sub,cursor:input.trim()?"pointer":"default",fontSize:15,fontWeight:700}}>↑</button>
