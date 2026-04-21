@@ -1,1693 +1,1784 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
-// ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
-const PERSONAS_CONFIG = {
-  sarah: {
-    id:"sarah", name:"Sarah Chen", role:"Senior Wealth Advisor", avatar:"SC",
-    color:"#0f4c35", accent:"#16a34a", light:"#f0fdf4",
-    mcps:["Salesforce CRM","Portfolio Engine","Core Banking","Outlook 365"],
-    greeting:"Good morning, Sarah.",
-    suggestions:[
-      "Who needs attention this week?",
-      "Any RRSP contribution room gaps?",
-      "Clients not contacted in 30+ days",
-      "Draft a market update for tech-heavy portfolios"
+// ─── COLOUR PALETTES ─────────────────────
+const LIGHT = {
+  bg:      "#F7F8FA", card:    "#FFFFFF",  border:  "#EAECF0", border2: "#F2F4F7",
+  text:    "#0F1117", sub:     "#6B7280",  muted:   "#9CA3AF", faint:   "#D1D5DB",
+  green:   "#00C896", greenBg: "#E6FAF4",  greenTx: "#00875F",
+  red:     "#EF4444", redBg:   "#FEF2F2",  redTx:   "#B91C1C",
+  amber:   "#F59E0B", amberBg: "#FFFBEB",  amberTx: "#92400E",
+  blue:    "#3B82F6", blueBg:  "#EFF6FF",  blueTx:  "#1D4ED8",
+  ws:      "#00C896", wsD:     "#009970",  pill:    "#F2F4F7",
+  // insight tag colours (light)
+  tagAmberBg:"#FFFBEB", tagAmberBr:"#FDE68A", tagAmberTx:"#92400E",
+  tagBlueBg: "#EFF6FF", tagBlueBr: "#BFDBFE", tagBlueTx: "#1D4ED8",
+  tagPurBg:  "#F5F3FF", tagPurBr:  "#DDD6FE", tagPurTx:  "#6D28D9",
+  tagGreenBg:"#E6FAF4", tagGreenBr:"#BBF7D0", tagGreenTx:"#00875F",
+  tagRedBg:  "#FEF2F2", tagRedBr:  "#FECACA", tagRedTx:  "#B91C1C",
+  // compliance banner
+  compBg:  "#FFF7ED", compBr:  "#FED7AA", compTx:  "#92400E",
+};
+const T = LIGHT;
+
+
+// ─── SEED DATA ───────────────────────────
+const ACCOUNTS = {
+  tfsa: {
+    id: "tfsa", label: "TFSA", type: "TFSA",
+    totalValue: 0, // computed
+    positions: [
+      { ticker:"NVDA", name:"NVIDIA Corporation",        shares:12,  avgCost:118.00, currentPrice:183.00, sector:"Technology",    assetType:"EQUITY", lastPurchaseDate:"2024-09-10" },
+      { ticker:"TSLA", name:"Tesla Inc.",                shares:5,   avgCost:285.00, currentPrice:408.00, sector:"Technology",    assetType:"EQUITY", lastPurchaseDate:"2025-01-28" },
+      { ticker:"AMD",  name:"Advanced Micro Devices",    shares:8,   avgCost:142.00, currentPrice:203.00, sector:"Technology",    assetType:"EQUITY", lastPurchaseDate:"2024-08-15" },
+      { ticker:"VRT",  name:"Vertiv Holdings",           shares:10,  avgCost:94.50,  currentPrice:105.20, sector:"Technology",    assetType:"EQUITY", lastPurchaseDate:"2024-11-15" },
+      { ticker:"AMZN", name:"Amazon.com Inc.",           shares:4,   avgCost:178.00, currentPrice:208.00, sector:"Consumer",      assetType:"EQUITY", lastPurchaseDate:"2024-07-22" },
+      { ticker:"COUR", name:"Coursera Inc.",             shares:50,  avgCost:18.40,  currentPrice:9.85,   sector:"Education",     assetType:"EQUITY", lastPurchaseDate:"2025-01-15" },
+      { ticker:"NIO",  name:"NIO Inc.",                  shares:100, avgCost:8.20,   currentPrice:4.35,   sector:"Auto",          assetType:"EQUITY", lastPurchaseDate:"2024-10-05" },
+      { ticker:"HIMX", name:"Himax Technologies",        shares:60,  avgCost:6.50,   currentPrice:7.90,   sector:"Technology",    assetType:"EQUITY", lastPurchaseDate:"2024-06-18" },
+      { ticker:"SIDU", name:"Sidus Space Inc.",          shares:200, avgCost:1.20,   currentPrice:0.85,   sector:"Aerospace",     assetType:"EQUITY", lastPurchaseDate:"2024-11-30" },
+      { ticker:"AMC",  name:"AMC Entertainment",         shares:25,  avgCost:6.80,   currentPrice:3.20,   sector:"Entertainment", assetType:"EQUITY", lastPurchaseDate:"2024-08-10" },
+      { ticker:"URAN", name:"Global X Uranium ETF",      shares:20,  avgCost:28.50,  currentPrice:31.20,  sector:"Energy",        assetType:"ETF",    lastPurchaseDate:"2024-10-12" },
     ]
   },
-  marcus: {
-    id:"marcus", name:"Marcus Williams", role:"AML Analyst", avatar:"MW",
-    color:"#7c2d12", accent:"#ea580c", light:"#fff7ed",
-    mcps:["Transaction Monitor","KYC Platform","FINTRAC Gateway","Risk Engine"],
-    greeting:"Good morning, Marcus.",
-    suggestions:[
-      "Today's high-risk flags",
-      "FINTRAC deadlines today?",
-      "Open STR case summary",
-      "Velocity spikes this week"
+  nonreg: {
+    id: "nonreg", label: "Non-Registered", type: "NON_REG",
+    positions: [
+      { ticker:"AAPL", name:"Apple Inc.",            shares:10, avgCost:178.40, currentPrice:272.00, sector:"Technology", assetType:"EQUITY", lastPurchaseDate:"2024-06-01" },
+      { ticker:"MSFT", name:"Microsoft Corporation", shares:5,  avgCost:380.20, currentPrice:401.00, sector:"Technology", assetType:"EQUITY", lastPurchaseDate:"2024-07-15" },
+      { ticker:"RY",   name:"Royal Bank of Canada",  shares:15, avgCost:132.60, currentPrice:148.60, sector:"Financials", assetType:"EQUITY", lastPurchaseDate:"2024-05-20" },
+      { ticker:"ENB",  name:"Enbridge Inc.",          shares:40, avgCost:52.10,  currentPrice:59.20,  sector:"Energy",     assetType:"EQUITY", lastPurchaseDate:"2024-03-10" },
+      { ticker:"IMG",  name:"First Majestic Silver",  shares:30, avgCost:7.80,   currentPrice:6.20,   sector:"Materials",  assetType:"EQUITY", lastPurchaseDate:"2025-01-20" },
     ]
   },
-  rachel: {
-    id:"rachel", name:"Rachel Okonkwo", role:"Compliance Officer", avatar:"RO",
-    color:"#1e3a5f", accent:"#2563eb", light:"#eff6ff",
-    mcps:["Comms Review","OSC/CIRO Regulatory DB","Policy Vault","Outlook 365"],
-    greeting:"Good morning, Rachel.",
-    suggestions:[
-      "Regulatory changes this week?",
-      "What's blocking the current campaign?",
-      "Open CIRO deadlines",
-      "Draft AI disclosure memo"
+  crypto: {
+    id: "crypto", label: "Crypto", type: "CRYPTO",
+    positions: [
+      { ticker:"BTC",  name:"Bitcoin",      shares:0.12, avgCost:42000, currentPrice:87000, sector:"Crypto", assetType:"CRYPTO", lastPurchaseDate:"2024-08-01" },
+      { ticker:"ETH",  name:"Ethereum",     shares:1.5,  avgCost:2450,  currentPrice:2200,  sector:"Crypto", assetType:"CRYPTO", lastPurchaseDate:"2024-09-15" },
+      { ticker:"SOL",  name:"Solana",       shares:8,    avgCost:95,    currentPrice:148,   sector:"Crypto", assetType:"CRYPTO", lastPurchaseDate:"2024-11-01" },
     ]
   }
 };
+// compute totals
+Object.values(ACCOUNTS).forEach(a => {
+  a.totalValue = a.positions.reduce((s,p)=>s+p.currentPrice*p.shares,0);
+  a.totalCost  = a.positions.reduce((s,p)=>s+p.avgCost*p.shares,0);
+});
 
-// ─── MOCKED MCP DATA ─────────────────────────────────────────────────────────
-// In production these would be live queries to each MCP server.
-// Each dataset represents what that MCP would return on a morning scan.
-
-const MOCK_MCP_DATA = {
-  sarah: {
-    "Salesforce CRM": {
-      clients_needing_contact: [
-        { id:"WS-4421089", name:"David Chen",    last_contact_days:47, notes:"Expressed concern about market volatility in last call", rrsp_deadline_days:8 },
-        { id:"WS-3312044", name:"Priya Kapoor",  last_contact_days:12, notes:"Anxiety about tech concentration flagged", upcoming_call:true },
-        { id:"WS-5512088", name:"Amara Nwosu",   last_contact_days:61, notes:"On maternity leave — gentle outreach only", auto_invest_paused:true },
-        { id:"WS-2201974", name:"James Keller",  last_contact_days:90, notes:"Passive investor, responds to email", idle_cash_flag:true },
-        { id:"WS-7734521", name:"Marcus Reid",   last_contact_days:46, notes:"First-time buyer, excited about home purchase" },
-        { id:"WS-6621044", name:"Aisha Mohammed",last_contact_days:48, notes:"Actively saving, responds well to proactive outreach" }
-      ]
-    },
-    "Portfolio Engine": {
-      drawdowns: [
-        { id:"WS-4421089", name:"David Chen",    drawdown_pct:-11.2, top_losers:["NVDA","AMD","TSLA"] },
-        { id:"WS-3312044", name:"Priya Kapoor",  drawdown_pct:-8.6,  tech_pct:74 },
-        { id:"WS-2209871", name:"James Wu",       drawdown_pct:-3.1,  tech_pct:71 },
-        { id:"WS-5501233", name:"Wei Zhang",      drawdown_pct:-2.4,  tech_pct:70 }
-      ],
-      concentration_alerts: [
-        { id:"WS-3312044", name:"Priya Kapoor",  sector:"Technology", pct:74, threshold:70, portfolio_value:198000 },
-        { id:"WS-2209871", name:"James Wu",       sector:"Technology", pct:71, threshold:70, portfolio_value:445200 },
-        { id:"WS-5501233", name:"Wei Zhang",      sector:"Technology", pct:70, threshold:70, portfolio_value:89500 }
-      ],
-      trigger:"NVDA +8.4% this week pushed three accounts past single-sector threshold"
-    },
-    "Core Banking": {
-      idle_cash: [
-        { id:"WS-2201974", name:"James Keller", cash_amount:82000, idle_days:93, account:"TFSA" }
-      ],
-      fhsa_gaps: [
-        { id:"WS-7734521", name:"Marcus Reid",    available_room:8000, status:"first_time_buyer", pre_approved_mortgage:true, deadline_days:29 },
-        { id:"WS-6621044", name:"Aisha Mohammed", available_room:8000, status:"first_time_buyer", actively_saving:true,        deadline_days:29 }
-      ]
-    },
-    "Outlook 365": {
-      todays_calls: ["WS-3312044 (Priya Kapoor) — 2:00 PM"],
-      emails_sent_today: 0,
-      unread_client_messages: 2
-    }
-  },
-  marcus: {
-    "Transaction Monitor": {
-      high_confidence_flags: [
-        {
-          case_id:"TXN-2847", client_id:"WS-7731029", client_name:"Robert Beaumont",
-          pattern:"structuring", confidence:0.94,
-          transactions:[
-            { type:"wire_in",  amount:47000, source:"TD Bank",          timestamp:"2025-03-01 09:14" },
-            { type:"transfer_out", amount:46800, destination:"crypto_exchange", timestamp:"2025-03-01 14:32" }
-          ],
-          intermediary:"Cayman Islands — flagged jurisdiction",
-          fintrac_window_hours:24, window_expires:"2025-03-02 14:32",
-          prior_sars:1
-        }
-      ],
-      medium_confidence_flags: [
-        {
-          case_id:"WS-8832011", client_id:"WS-8832011", client_name:"Mei-Ling Park",
-          pattern:"velocity_spike", confidence:0.61,
-          account_age_weeks:6,
-          transactions_48h:12, total_volume_48h:38400, avg_txn:3200,
-          pattern_detail:"E-transfer in from 4 distinct senders → consolidated outbound wire",
-          kyc_status:"basic_only", income_verified:false
-        }
-      ],
-      auto_cleared_overnight: {
-        count:14,
-        breakdown:[
-          { type:"payroll_deposits", count:6, avg:3100 },
-          { type:"recurring_bills",  count:5, avg:890  },
-          { type:"known_etransfer_network", count:3, avg:450 }
-        ],
-        edge_cases:2, edge_case_confidence_range:"38–39%"
-      }
-    },
-    "KYC Platform": {
-      profiles: {
-        "WS-7731029":{ name:"Robert Beaumont", risk_rating:"medium_high", kyc_complete:true,  onboarded:"2021-06-12", prior_sars:1 },
-        "WS-8832011":{ name:"Mei-Ling Park",   risk_rating:"medium",      kyc_complete:false, onboarded:"2025-01-15", income_unverified:true }
-      }
-    },
-    "FINTRAC Gateway": {
-      open_cases:1, pending_strs:0, last_filing:"2025-02-18",
-      reporting_deadlines:[
-        { case_id:"TXN-2847", deadline:"2025-03-02 14:32", hours_remaining:22 }
-      ]
-    },
-    "Risk Engine": {
-      daily_risk_score:7.4, threshold:6.0, elevated:true,
-      top_risk_drivers:["TXN-2847 (structuring, high confidence)","WS-8832011 (velocity, KYC gap)"]
-    }
-  },
-  rachel: {
-    "Comms Review": {
-      pending_campaigns:[
-        {
-          campaign:"Spring Mortgage Refinance Campaign",
-          launch_date:"2025-03-07", days_to_launch:5,
-          emails_total:3, emails_cleared:2, emails_flagged:1,
-          flagged_item:{
-            subject:"Email #3 — Main offer email",
-            flagged_phrase:"This mortgage rate is right for you",
-            reason:"Suitability language — implies individualized recommendation without assessment",
-            suggested_fix:"Replace with: 'Competitive mortgage rates available for qualified applicants'"
-          }
-        }
-      ]
-    },
-    "OSC/CIRO Regulatory DB": {
-      recent_notices:[
-        {
-          notice:"OSC Staff Notice 11-940",
-          published:"2025-02-14",
-          title:"Guidance on AI-Assisted Client Communications",
-          requirement:"AI-drafted or AI-reviewed communications require disclosure statement + human review attestation",
-          effective:"immediately",
-          affected_campaigns_est:4
-        }
-      ],
-      applicable_rules:[
-        { rule:"OSC Rule 31-103 s.13.2", topic:"Suitability — requires individualized client assessment before recommendation" },
-        { rule:"CIRO Rule 3400",          topic:"Supervisory procedures for client communications" }
-      ]
-    },
-    "Policy Vault": {
-      open_filings:[
-        {
-          filing:"CIRO Quarterly Compliance Report Q4 2024",
-          due_date:"2025-03-08", days_remaining:6,
-          sections_total:8, sections_ai_prefilled:6, sections_need_input:2,
-          pending_sections:[
-            { section:4, name:"Complaint Log Attestation", detail:"3 complaints Q4, all resolved. Officer signature required." },
-            { section:7, name:"Training Records Narrative", detail:"2 staff completed modules 4 days late. Written explanation required." }
-          ]
-        }
-      ]
-    },
-    "Outlook 365": {
-      upcoming_deadlines:[
-        { item:"CIRO Q4 filing",                due:"2025-03-08", days:6 },
-        { item:"Spring Campaign launch approval", due:"2025-03-07", days:5 }
-      ],
-      unread_legal_emails:1
-    }
-  }
+// ─── NEWS ────────────────────────────────
+const NEWS = {
+  NVDA: ["NVIDIA beats Q4 estimates, data center revenue +409% YoY","Blackwell GPU demand 'staggering' says CEO Jensen Huang","Morgan Stanley raises PT to $220 on Blackwell ramp"],
+  TSLA: ["Tesla misses Q4 delivery estimates for second consecutive quarter","Cybertruck production ramp faces bottlenecks","Analysts split on 2025 outlook amid EV demand softening"],
+  AMD:  ["AMD gains server share as EPYC adoption accelerates","MI300X AI chip seeing strong hyperscaler demand","Q4 revenue guidance in line, data center outperforms"],
+  VRT:  ["Vertiv wins $400M data center cooling contract","Power management surge drives margin expansion","Goldman initiates with Buy, $130 PT"],
+  AMZN: ["AWS re-acceleration drives beat across all segments","Amazon advertising +27%, now third-largest ad platform","Prime membership hits record globally"],
+  COUR: ["Coursera Q3 revenue misses consensus for third quarter","AI course completions +400% but monetization weak","CEO change announced; COO takes interim role"],
+  NIO:  ["NIO deliveries fall short amid pricing war","Battery-as-a-service subscribers down QoQ","Chinese EV oversupply pressures margins industry-wide"],
+  HIMX: ["Himax sees automotive display recovery in H2","AR/VR display orders from major OEM confirmed","Q2 guidance raised on DDIC demand uptick"],
+  SIDU: ["Sidus Space secures small government contract extension","Revenue run-rate below analyst consensus","Liquidity concerns flagged in latest 10-Q"],
+  AMC:  ["AMC refinances debt, extends maturity to 2029","Box office recovery slower than expected","Analyst consensus remains Sell — balance sheet concerns"],
+  AAPL: ["Apple Intelligence features drive upgrade anticipation","Services revenue hits record $26.3B in Q1 2025","China revenue headwinds persist for fourth consecutive quarter"],
+  MSFT: ["Azure growth re-accelerates to 31% on AI workloads","Copilot monetization ahead of targets","OpenAI partnership deepens with new model integrations"],
+  RY:   ["Royal Bank HSBC Canada integration ahead of schedule","Wealth management AUM reaches record $1.2T CAD","Q4 provisions in line with consensus"],
+  ENB:  ["Enbridge US natural gas acquisition fully integrated","Mainline tolling extended to 2028","6.1% dividend yield supported by inflation-linked contracts"],
+  IMG:  ["First Majestic Q3 production beat on higher silver prices","Silver at multi-year high on industrial demand","San Dimas mine reaches record throughput"],
+  BTC:  ["Bitcoin ETF inflows hit monthly record","Institutional adoption accelerates ahead of halving","Regulatory clarity improving in key markets"],
+  ETH:  ["Ethereum staking yield stabilizes at 4.2%","Layer-2 activity reaches all-time high","ETF approval expands institutional access"],
+  SOL:  ["Solana DeFi TVL surpasses $8B","Network uptime at 99.9% for six consecutive months","Institutional validators growing rapidly"],
+  URAN: ["Uranium spot price at 15-year high","Nuclear energy capacity additions accelerating globally","Kazatomprom production guidance cut 17%"],
 };
 
-// ─── ORCHESTRATOR PROMPT ─────────────────────────────────────────────────────
-function buildOrchestratorPrompt(persona, mcpData) {
-  return `You are a morning intelligence orchestrator for a financial platform. Your job is to read data from multiple MCP sources and decide the 3 most important action tiles for ${persona.name}, ${persona.role} at Wealthsimple.
-
-TODAY'S DATA FROM MCP SOURCES:
-${JSON.stringify(mcpData, null, 2)}
-
-PERSONA CONTEXT:
-- Name: ${persona.name}
-- Role: ${persona.role}  
-- Data access: ${persona.mcps.join(", ")}
-- She/he should ONLY see data from their authorized sources
-
-TASK: Analyze all data and return exactly 3 tiles as a JSON array. Prioritize by urgency — what needs action today first.
-
-Each tile must follow this exact schema:
-{
-  "id": "tile_[1|2|3]",
-  "urgency": "high" | "medium" | "low",
-  "label": "Short category label (2-3 words, e.g. 'Urgent Attention', 'STR Filing Required')",
-  "headline": "Sharp action-oriented headline under 10 words with specific data",
-  "blurb": "2-3 sentences. Specific numbers, names, deadlines. Tell them exactly what the AI found.",
-  "sources": ["Array of MCP source names that contributed to this tile"],
-  "chips": ["4 suggested follow-up actions the user might want to take"],
-  "keyFacts": [
-    { "label": "Fact label", "value": "Fact value — specific and concrete" }
-  ],
-  "orchestratorReasoning": "1-2 sentences explaining why the AI surfaced this as a priority today vs other signals in the data",
-  "suggestedAction": "The single most important next action — specific and direct",
-  "drillPrompt": "Full system prompt for the drill-down chat. Include all relevant data from the MCP feeds for this tile, the persona's role, what actions they can take, and that they CANNOT access other personas' data. When producing drafts/forms, label them 'DRAFT — Awaiting your approval'."
-}
-
-ORDERING RULES:
-1. Legal deadlines with time windows (FINTRAC, regulatory filings) = always first if present
-2. Direct client impact (drawdowns, missed contact with upcoming deadline) = second
-3. Compliance blockers (campaign launch at risk) = third  
-4. Proactive opportunities = lowest priority
-
-Return ONLY the raw JSON array. No markdown, no explanation, no backticks.`;
-}
-
-// ─── TILE GENERATION HOOK ────────────────────────────────────────────────────
-// Demo mode: routing animation runs then surfaces pre-built tiles instantly.
-// Total load time: ~1.5s — fast enough to feel snappy, long enough to show the scan.
-function useTileOrchestrator(persona) {
-  const [tiles,     setTiles]     = useState(null);
-  const [loading,   setLoading]   = useState(false);
-  const [routing,   setRouting]   = useState(false);
-  const [routeStep, setRouteStep] = useState(0);
-
-  const generate = useCallback(async () => {
-    setLoading(true);
-    setRouting(true);
-    setRouteStep(0);
-    setTiles(null);
-
-    // Step through each MCP source — spread evenly across 5s total
-    for (let i = 0; i <= persona.mcps.length; i++) {
-      await new Promise(r => setTimeout(r, 900));
-      setRouteStep(i);
-    }
-    // "Synthesizing..." hold
-    await new Promise(r => setTimeout(r, 600));
-    setRouting(false);
-
-    // Surface pre-built tiles — no API call needed for demo
-    setTiles(FALLBACK_TILES[persona.id]);
-    setLoading(false);
-  }, [persona.id]);
-
-  useEffect(() => { generate(); }, [generate]);
-
-  return { tiles, loading, routing, routeStep, error: null, refresh: generate };
-}
-
-// ─── FALLBACK TILES ──────────────────────────────────────────────────────────
-// Used if API fails — ensures demo never breaks
-const FALLBACK_TILES = {
-  sarah: [
-    {
-      id:"tile_1", urgency:"high", label:"Urgent Attention",
-      headline:"4 clients need contact today",
-      blurb:"David Chen is down 11.2% with an RRSP deadline in 8 days and no contact in 47 days. Priya Kapoor expressed anxiety on her last call and has a call booked today. Two others have flags that warrant outreach before week-end.",
-      sources:["Portfolio Engine","Salesforce CRM","Core Banking"],
-      chips:["Who should I call first?","Draft email to David Chen","Talking points for Priya's call","Book follow-ups for all four"],
-      keyFacts:[
-        {label:"Highest priority", value:"David Chen — RRSP deadline in 8 days, -11.2%, 47 days no contact"},
-        {label:"Today's call", value:"Priya Kapoor — 2:00 PM, tech concentration at 74%"},
-        {label:"Long overdue", value:"Amara Nwosu — 61 days, TFSA auto-invest paused"},
-        {label:"Idle cash", value:"James Keller — $82,000 idle 90+ days"}
-      ],
-      orchestratorReasoning:"David Chen has three compounding risk signals firing simultaneously — drawdown, tax deadline, and contact gap. Ranked #1 by urgency score.",
-      suggestedAction:"Call David Chen before market open. RRSP deadline in 8 days is time-bound.",
-      drillPrompt:`You are an AI assistant for Sarah Chen, Senior Wealth Advisor at Wealthsimple. Sources: Portfolio Engine, Salesforce CRM, Core Banking, Outlook 365. 4 clients need urgent contact: David Chen (WS-4421089, -11.2%, RRSP deadline 8 days, 47 days no contact), Priya Kapoor (WS-3312044, -8.6%, anxiety noted, call today 2PM), Amara Nwosu (WS-5512088, TFSA auto-invest paused, 61 days no contact, on maternity leave), James Keller (WS-2201974, $82K idle 90 days). Help Sarah prioritize, prepare talking points, draft emails. When drafting emails write full text and label "DRAFT EMAIL — Awaiting your approval". You cannot access AML or compliance data.`
-    },
-    {
-      id:"tile_2", urgency:"medium", label:"Concentration Alert",
-      headline:"3 clients above 70% tech exposure",
-      blurb:"NVDA +8.4% this week pushed Priya Kapoor, James Wu, and Wei Zhang past the 70% single-sector threshold simultaneously. Combined portfolio value affected: $732,700. All three need contact before Friday.",
-      sources:["Portfolio Engine","Salesforce CRM"],
-      chips:["Draft personalized emails for all three","Which is highest risk?","Rebalancing options to suggest","Have any of them already called in?"],
-      keyFacts:[
-        {label:"Priya Kapoor",  value:"74% tech, $198,000 — last contact 12 days ago"},
-        {label:"James Wu",     value:"71% tech, $445,200 — last contact 3 days ago (may be aware)"},
-        {label:"Wei Zhang",    value:"70% tech, $89,500 — last contact 31 days ago"},
-        {label:"Trigger",      value:"NVDA +8.4% this week"}
-      ],
-      orchestratorReasoning:"All three crossed the threshold in the same week due to NVDA's run. Batching outreach now is more efficient than handling callbacks when clients notice the drawdown themselves.",
-      suggestedAction:"Reach out before market open Friday. James Wu was contacted recently — may deprioritize.",
-      drillPrompt:`You are an AI assistant for Sarah Chen, Senior Wealth Advisor at Wealthsimple. Sources: Portfolio Engine, Salesforce CRM. 3 clients crossed 70% tech concentration this week: Priya Kapoor (74%, $198K, last contact 12 days), James Wu (71%, $445K, 3 days), Wei Zhang (70%, $89.5K, 31 days). Trigger: NVDA +8.4%. Draft personalized emails per client, tailored to their contact recency. Label drafts "DRAFT EMAIL — Awaiting your approval". You cannot access AML or compliance data.`
-    },
-    {
-      id:"tile_3", urgency:"low", label:"Opportunity",
-      headline:"2 clients have $8,000 FHSA room — 29 days left",
-      blurb:"Marcus Reid and Aisha Mohammed both opened FHSAs in January with no contributions since. Year-end deadline is 29 days away. Both are first-time buyers — proactive outreach reinforces the relationship at a high-engagement moment.",
-      sources:["Core Banking","Salesforce CRM"],
-      chips:["Draft FHSA emails for both","What tax angle to lead with?","What else do I know about their situations?","Best time to reach each?"],
-      keyFacts:[
-        {label:"Marcus Reid",    value:"$8,000 available, pre-approved mortgage, last contact 46 days"},
-        {label:"Aisha Mohammed", value:"$8,000 available, actively saving, last contact 48 days"},
-        {label:"Deadline",       value:"December 31 — 29 days remaining"},
-        {label:"Benefit",        value:"Tax-deductible contribution + tax-free growth on withdrawal"}
-      ],
-      orchestratorReasoning:"Both accounts have been open since January with zero activity. Year-end creates a natural reason to reach out without feeling intrusive.",
-      suggestedAction:"Frame as year-end tax optimization opportunity. Warm, personalized outreach.",
-      drillPrompt:`You are an AI assistant for Sarah Chen, Senior Wealth Advisor at Wealthsimple. Sources: Core Banking, Salesforce CRM. Marcus Reid (WS-7734521, $8K FHSA room, first-time buyer, pre-approved mortgage, 46 days no contact) and Aisha Mohammed (WS-6621044, $8K FHSA room, first-time buyer, actively saving, 48 days). Year-end deadline 29 days. Draft warm personalized emails per client. Label "DRAFT EMAIL — Awaiting your approval". You cannot access AML or compliance data.`
-    }
-  ],
-  marcus: [
-    {
-      id:"tile_1", urgency:"high", label:"STR Filing Required",
-      headline:"TXN-2847 — FINTRAC window expires in 22 hours",
-      blurb:"Robert Beaumont transferred $47,000 in via TD Bank wire and $46,800 out to a crypto exchange the same day, routed through a Cayman Islands intermediary. Transaction pattern is consistent with structuring. This is the last day of the 24-hour FINTRAC reporting window.",
-      sources:["Transaction Monitor","KYC Platform","FINTRAC Gateway"],
-      chips:["Walk me through the full case","Generate the FINTRAC STR form","What makes this structuring vs. coincidence?","Show the full transaction timeline"],
-      keyFacts:[
-        {label:"Case ID",          value:"TXN-2847"},
-        {label:"Client",           value:"Robert Beaumont (WS-7731029) — Medium-High KYC risk"},
-        {label:"Pattern",          value:"$47K in → $46.8K out, same day, Cayman intermediary"},
-        {label:"Risk Score",       value:"High — structuring pattern identified"},
-        {label:"Prior history",    value:"1 prior SAR (2022, resolved)"},
-        {label:"FINTRAC deadline", value:"Today — 22 hours remaining"}
-      ],
-      orchestratorReasoning:"Time-bound regulatory filing with high confidence score and prior SAR history. Legal obligation — cannot be deferred.",
-      suggestedAction:"Review AI brief and submit STR to FINTRAC Gateway before end of day.",
-      drillPrompt:`You are an AI assistant for Marcus Williams, AML Analyst at Wealthsimple. Sources: Transaction Monitor, KYC Platform, FINTRAC Gateway, Risk Engine. Case TXN-2847: Robert Beaumont (WS-7731029), KYC risk Medium-High, $47,000 in via wire from TD Bank on 2025-03-01 at 09:14, $46,800 out to crypto exchange same day at 14:32, Cayman Islands intermediary flagged, transaction pattern consistent with structuring (same-day cycle, near-identical amounts, flagged intermediary), 1 prior SAR (2022 resolved), 24hr FINTRAC window expires today. When Marcus is ready to file, produce a complete pre-filled FINTRAC STR with all required sections labeled "FINTRAC STR FORM — Pre-filled, awaiting your approval": Section 1 Reporting Entity (Wealthsimple Financial Inc., FINTRAC ID 12994-WS), Section 2 Subject Information (from KYC), Section 3 Transaction Details, Section 4 Suspicious Indicators, Section 5 Narrative. You cannot access portfolio or compliance data.`
-    },
-    {
-      id:"tile_2", urgency:"medium", label:"Pattern Review",
-      headline:"New account — velocity spike, KYC incomplete",
-      blurb:"Mei-Ling Park's account is 6 weeks old. 12 transactions totalling $38,400 arrived in 48 hours from 4 distinct senders, then consolidated outbound. Income is unverified. Pattern resembles layering but AI confidence is 61% — human judgment required.",
-      sources:["Transaction Monitor","KYC Platform","Risk Engine"],
-      chips:["Does this look like layering?","What KYC is missing?","Initiate enhanced due diligence","Should I file a SAR or wait?"],
-      keyFacts:[
-        {label:"Client",          value:"Mei-Ling Park (WS-8832011) — account 6 weeks old"},
-        {label:"Activity",        value:"12 transactions, $38,400 in 48 hours, avg $3,200"},
-        {label:"Pattern",         value:"E-transfer in from 4 senders → consolidated outbound wire"},
-        {label:"KYC gap",         value:"Basic only — income source unverified"},
-        {label:"AI confidence",   value:"61% — below STR threshold, above monitoring threshold"}
-      ],
-      orchestratorReasoning:"61% confidence sits below the auto-flag threshold but above the ignore threshold. New account age + KYC gap elevates risk. Human review warranted.",
-      suggestedAction:"Assess whether enhanced due diligence or voluntary SAR is appropriate.",
-      drillPrompt:`You are an AI assistant for Marcus Williams, AML Analyst at Wealthsimple. Sources: Transaction Monitor, KYC Platform, Risk Engine. Case WS-8832011, Mei-Ling Park. Account opened 2025-01-15 (6 weeks old). 12 transactions in 48 hours totalling $38,400, average $3,200. Pattern: e-transfer in from 4 distinct senders then consolidated outbound wire. KYC status: basic only, income unverified. Risk Engine: Medium, escalation pending. AI confidence: 61% (below STR threshold). Help Marcus assess if EDD, voluntary SAR, or account restriction is warranted. If proceeding with any formal step, produce a pre-filled form labeled "FORM — Pre-filled, awaiting your approval". You cannot access portfolio or compliance data.`
-    },
-    {
-      id:"tile_3", urgency:"low", label:"Queue Summary",
-      headline:"14 routine flags auto-cleared overnight",
-      blurb:"The AI resolved 14 low-risk flags from the overnight queue — payroll deposits, recurring bills, known e-transfer networks. All logged with confidence scores. Two edge cases at 38–39% confidence are available for spot-check if you want to verify the AI's reasoning.",
-      sources:["Transaction Monitor","Risk Engine"],
-      chips:["Show me the 2 edge cases","Confirm audit log is complete","Anything I should escalate?","Export queue summary for record"],
-      keyFacts:[
-        {label:"Auto-cleared",   value:"14 flags — payroll (6), recurring bills (5), known network (3)"},
-        {label:"Method",         value:"Pattern match vs 24-month historical baseline"},
-        {label:"Audit trail",    value:"All logged with confidence scores in FINTRAC Gateway"},
-        {label:"Edge cases",     value:"2 flags at 38–39% confidence — just below threshold"}
-      ],
-      orchestratorReasoning:"Routine clearances are surfaced for transparency and audit readiness, not action. Two edge cases are flagged in case Marcus wants to spot-check the AI's judgment.",
-      suggestedAction:"Spot-check 2 edge cases if time permits. No required action.",
-      drillPrompt:`You are an AI assistant for Marcus Williams, AML Analyst at Wealthsimple. Sources: Transaction Monitor, Risk Engine. Overnight queue: 14 flags auto-cleared — payroll deposits (6, avg $3,100), recurring bill payments (5, avg $890), known e-transfer network (3, avg $450). 2 edge cases at 38-39% confidence just below the STR threshold. All logged with confidence scores. Help Marcus review edge cases and confirm audit readiness for FINTRAC examination. You cannot access portfolio or compliance data.`
-    }
-  ],
-  rachel: [
-    {
-      id:"tile_1", urgency:"high", label:"Launch Blocker",
-      headline:"Campaign cannot launch — 1 email flagged",
-      blurb:"The Spring Mortgage Refinance Campaign launches Friday. 3 emails were reviewed. 2 cleared. Email #3 contains 'This mortgage rate is right for you' — a suitability claim under OSC Rule 31-103 s.13.2. One sentence is blocking a Friday launch.",
-      sources:["Comms Review","OSC/CIRO Regulatory DB"],
-      chips:["Show the flagged phrase in full context","Approve the fix and issue clearance","What exactly does OSC 31-103 say?","Are the other 2 emails fully clear?"],
-      keyFacts:[
-        {label:"Campaign",       value:"Spring Mortgage Refinance — launches Friday March 7"},
-        {label:"Status",         value:"2 of 3 emails cleared — 1 blocking"},
-        {label:"Flagged phrase", value:"'This mortgage rate is right for you'"},
-        {label:"Rule",           value:"OSC Rule 31-103, s.13.2 — suitability requires individualized assessment"},
-        {label:"Suggested fix",  value:"'Competitive mortgage rates available for qualified applicants'"},
-        {label:"Risk",           value:"Medium — regulatory review triggered if sent as-is"}
-      ],
-      orchestratorReasoning:"A launched campaign with a suitability violation creates direct regulatory exposure. Fix is low-effort; impact of inaction is material.",
-      suggestedAction:"Approve the suggested fix, apply it, issue compliance clearance for Friday launch.",
-      drillPrompt:`You are an AI assistant for Rachel Okonkwo, Compliance Officer at Wealthsimple. Sources: Comms Review, OSC/CIRO Regulatory DB, Policy Vault, Outlook 365. Spring Mortgage Refinance Campaign launches Friday March 7. 3 emails reviewed: Email #1 and #2 cleared. Email #3 flagged — phrase 'This mortgage rate is right for you' is a suitability claim under OSC Rule 31-103, s.13.2, which requires individualized client assessment before any suitability recommendation. Suggested fix: replace with 'Competitive mortgage rates available for qualified applicants'. When Rachel approves, produce full COMPLIANCE CLEARANCE DOCUMENT labeled "COMPLIANCE CLEARANCE — Awaiting your approval and signature" including: officer name, date, campaign name, flagged phrase, approved replacement, regulatory basis, human review attestation. You cannot access AML or portfolio data.`
-    },
-    {
-      id:"tile_2", urgency:"medium", label:"Filing Deadline",
-      headline:"CIRO Q4 report due in 6 days — 2 sections need you",
-      blurb:"The Q4 2024 CIRO Quarterly Compliance Report is due March 8. AI pre-filled 6 of 8 sections from the audit trail. Section 4 needs your attestation on three resolved complaints. Section 7 needs a written narrative explaining two late training completions.",
-      sources:["OSC/CIRO Regulatory DB","Policy Vault","Outlook 365"],
-      chips:["Draft the Section 7 training narrative","What exactly do I attest in Section 4?","Show me the pre-filled sections","Ready to submit the full report"],
-      keyFacts:[
-        {label:"Filing",          value:"CIRO Q4 2024 Quarterly Compliance Report"},
-        {label:"Due date",        value:"March 8 — 6 days"},
-        {label:"Sections done",   value:"6 of 8 — AI pre-filled from audit trail"},
-        {label:"Section 4",       value:"Complaint log attestation — 3 complaints Q4, all resolved"},
-        {label:"Section 7",       value:"Training narrative — 2 staff completed modules 4 days late"}
-      ],
-      orchestratorReasoning:"6-day window is tight with the campaign launch also on Friday. Section 7 narrative will take judgment — surfacing early to avoid a deadline crunch.",
-      suggestedAction:"Draft Section 7 narrative first, then sign Section 4 attestation. Submit by Thursday to allow review buffer.",
-      drillPrompt:`You are an AI assistant for Rachel Okonkwo, Compliance Officer at Wealthsimple. Sources: OSC/CIRO Regulatory DB, Policy Vault, Outlook 365. CIRO Q4 2024 Quarterly Compliance Report due March 8 (6 days). Sections 1–3, 5, 6, 8 are pre-filled from audit trail. Section 4: Complaint Log Attestation — 3 complaints received Q4, all resolved within policy timeframes, officer signature required. Section 7: Training Records Narrative — 2 staff (names withheld) completed mandatory compliance modules 4 days past deadline due to leave overlap; remedial completion confirmed. When ready to produce the full submission, label it "CIRO QUARTERLY SUBMISSION — Pre-filled, awaiting your approval". You cannot access AML or portfolio data.`
-    },
-    {
-      id:"tile_3", urgency:"low", label:"Regulatory Watch",
-      headline:"New OSC guidance — AI comms need disclosure",
-      blurb:"OSC Staff Notice 11-940 (Feb 14) requires disclosure statements on AI-assisted client communications, effective immediately. The Friday mortgage campaign is unaffected (not AI-drafted). The upcoming RRSP campaign may need a disclosure clause added before launch.",
-      sources:["OSC/CIRO Regulatory DB"],
-      chips:["Which Q1 campaigns are affected?","Draft the AI disclosure memo","What disclosure language does OSC recommend?","Update the campaign review checklist"],
-      keyFacts:[
-        {label:"Notice",          value:"OSC Staff Notice 11-940 — published Feb 14, 2025"},
-        {label:"Requirement",     value:"AI-drafted or AI-reviewed comms need disclosure + human review attestation"},
-        {label:"Effective",       value:"Immediately — applies to all new campaigns"},
-        {label:"Friday campaign", value:"Unaffected — mortgage campaign was human-drafted"},
-        {label:"At risk",         value:"RRSP campaign (est. 4 Q1 campaigns total using AI copy)"}
-      ],
-      orchestratorReasoning:"Friday campaign is clear. RRSP campaign is in prep — now is the right time to update the review checklist before it becomes a blocker.",
-      suggestedAction:"Update campaign checklist template to require AI disclosure clause. Draft memo for legal sign-off.",
-      drillPrompt:`You are an AI assistant for Rachel Okonkwo, Compliance Officer at Wealthsimple. Sources: OSC/CIRO Regulatory DB, Policy Vault. OSC Staff Notice 11-940 (Feb 14, 2025): AI-assisted client communications require explicit disclosure statement and human review attestation, effective immediately. Applies to all campaigns where AI assisted in drafting or review. Friday mortgage campaign is unaffected (human-drafted). RRSP campaign (in prep) and est. 3 other Q1 campaigns may be affected. When drafting a policy memo, produce full document labeled "POLICY MEMO DRAFT — Awaiting your approval" suitable for legal distribution. You cannot access AML or portfolio data.`
-    }
-  ]
+// ─── COVERAGE ────────────────────────────
+const COV = {
+  NVDA:{level:"HIGH",n:42,d:18},  TSLA:{level:"HIGH",n:38,d:12},
+  AMD: {level:"HIGH",n:35,d:22},  VRT: {level:"HIGH",n:18,d:8},
+  AMZN:{level:"HIGH",n:47,d:15},  AAPL:{level:"HIGH",n:52,d:10},
+  MSFT:{level:"HIGH",n:48,d:14},  RY:  {level:"HIGH",n:18,d:20},
+  ENB: {level:"MEDIUM",n:11,d:38},IMG: {level:"MEDIUM",n:6,d:28},
+  COUR:{level:"MEDIUM",n:9,d:45}, NIO: {level:"MEDIUM",n:12,d:30},
+  AMC: {level:"MEDIUM",n:8,d:35}, HIMX:{level:"LOW",n:4,d:62},
+  SIDU:{level:"LOW",n:2,d:120},
 };
 
-
-// ─── MOCK CHAT RESPONSES ─────────────────────────────────────────────────────
-// Pre-written responses for all demo chips + common follow-ups.
-// Matched by keyword so free-form variants also hit the right response.
-// isAction:true responses trigger the Approve & Submit UI automatically.
-
-const MOCK_RESPONSES = [
-
-  // ── SARAH — Urgent Attention tile ─────────────────────────────────────────
-  {
-    match: ["draft email to david", "email david", "email for david"],
-    persona: "sarah",
-    isAction: true,
-    content: `DRAFT EMAIL — Awaiting your approval
-
-To: david.chen@email.com
-Subject: Quick check-in — RRSP deadline & your portfolio
-
-Hi David,
-
-I wanted to reach out personally given a few things I've been tracking on your account.
-
-Your portfolio has seen some pressure over the past few weeks — down about 11.2% — largely driven by the tech names we hold. I know market swings like this can be unsettling, and I want to make sure you're feeling good about your positioning.
-
-I also noticed your RRSP contribution deadline is coming up in 8 days. Given where your account sits, it might be worth a quick conversation before you decide whether to contribute, and if so, how much.
-
-I'd love to connect this week — even 20 minutes would be helpful. I'll send a calendar invite separately.
-
-Warm regards,
-Sarah Chen
-Senior Wealth Advisor, Wealthsimple`
-  },
-
-  {
-    match: ["set up meeting", "meeting invite", "calendar invite", "book meeting", "schedule meeting"],
-    persona: "sarah",
-    isAction: true,
-    content: `DRAFT MEETING INVITE — Awaiting your approval
-
-To: david.chen@email.com
-Subject: Portfolio & RRSP Review — 20 min this week
-
-Hi David,
-
-I've sent a calendar invite for a 20-minute call to review your portfolio and RRSP options before the deadline. Please feel free to suggest an alternative time if this doesn't work.
-
-——
-📅 Proposed: Thursday, March 6 at 10:00 AM EST
-🔗 Wealthsimple Video Call (link will be generated on confirmation)
-⏱ Duration: 20 minutes
-📋 Agenda: Portfolio positioning review + RRSP contribution decision
-
-Looking forward to speaking with you.
-
-Sarah Chen
-Senior Wealth Advisor, Wealthsimple`
-  },
-
-  {
-    match: ["who should i call", "who to call first", "who needs attention", "prioritize", "call first"],
-    persona: "sarah",
-    content: `Based on urgency scoring across your four flagged clients, here's the recommended order:
-
-**1. David Chen — Act today**
-Three signals firing at once: -11.2% drawdown, RRSP deadline in 8 days, 47 days no contact. The RRSP window is time-bound — this one can't slip to next week.
-
-**2. Priya Kapoor — Today at 2:00 PM (already booked)**
-Tech concentration hit 74% this week. She flagged anxiety on her last call, so lead with reassurance before getting into rebalancing options.
-
-**3. Amara Nwosu — This week**
-61 days no contact and her TFSA auto-invest is paused. She's on maternity leave — keep it brief and warm, not transactional.
-
-**4. James Keller — By Friday**
-$82K sitting idle for 90+ days. Low urgency but a clear opportunity. An email is fine.
-
-Start with David Chen's email and meeting invite now — want me to draft both?`
-  },
-
-  {
-    match: ["talking points for priya", "priya talking points", "priya call", "prepare for priya"],
-    persona: "sarah",
-    content: `Here are talking points for Priya's 2:00 PM call today:
-
-**Open with reassurance (first 2 minutes)**
-- Acknowledge the market has been choppy, especially in tech
-- Normalize her concern — NVDA moving 8%+ in a week is unusual
-- "Your long-term thesis hasn't changed. What we're seeing is volatility, not a structural shift."
-
-**Address the concentration (middle)**
-- Her tech exposure is now at 74% — above our 70% internal threshold
-- Frame it as an opportunity to review, not a problem she created
-- Suggest a light diversification into one or two non-correlated sectors (financials, infrastructure)
-- Have 2–3 rebalancing scenarios ready; let her choose the pace
-
-**Close with a plan (last 2 minutes)**
-- Agree on a specific next step — even small: "Let's move 5% into a diversified ETF this week"
-- Book a 30-day follow-up before you hang up
-
-**Avoid**
-- Projections or market predictions
-- Saying "it'll bounce back" — she's heard that before
-
-Want me to draft a follow-up email to send after the call?`
-  },
-
-  {
-    match: ["book follow-up", "follow-up meetings", "follow ups for all", "follow up for all"],
-    persona: "sarah",
-    content: `Here's a suggested follow-up schedule for all four clients:
-
-**David Chen** → Meeting this week (sending invite now) + RRSP decision by March 9
-**Priya Kapoor** → Post-call email today, rebalancing review in 2 weeks
-**Amara Nwosu** → Brief check-in email this week, full review when she's back from leave
-**James Keller** → Email this week exploring TFSA or RRSP options for idle cash
-
-Want me to draft the emails for Amara and James now while David and Priya are handled?`
-  },
-
-  // ── SARAH — Concentration Alert tile ──────────────────────────────────────
-  {
-    match: ["draft emails for all three", "draft personalized emails", "email all three"],
-    persona: "sarah",
-    isAction: true,
-    content: `DRAFT EMAIL — Awaiting your approval
-
-——— EMAIL 1: Priya Kapoor ———
-To: priya.kapoor@email.com
-Subject: Your portfolio this week — a quick note
-
-Hi Priya,
-
-Following up on our conversation — I wanted to flag that with NVDA's strong run this week, your tech allocation has moved to 74%. That's just above our internal 70% threshold.
-
-Given we talked about your comfort with concentration risk, I'd suggest we take 30 minutes to look at a light rebalance. No urgency — but worth doing before it drifts further.
-
-Are you free later this week?
-
-Sarah
-
-——— EMAIL 2: James Wu ———
-To: james.wu@email.com
-Subject: Tech allocation update — FYI
-
-Hi James,
-
-I know we just spoke a few days ago, so apologies for the quick follow-up — but NVDA's move this week pushed your tech exposure to 71%, which crosses our internal review threshold.
-
-You may already be tracking this. Just wanted to make sure it was on your radar. Happy to discuss if you'd like to talk through options.
-
-Sarah
-
-——— EMAIL 3: Wei Zhang ———
-To: wei.zhang@email.com
-Subject: Portfolio note — tech concentration
-
-Hi Wei,
-
-Hope you're well. I wanted to flag that your portfolio's tech exposure just reached 70% — right at our internal threshold — driven largely by NVDA this week.
-
-It's been a while since we connected (about a month). Would love to catch up and walk through your current positioning. Let me know if you have 20 minutes this week.
-
-Sarah`
-  },
-
-  // ── SARAH — FHSA tile ─────────────────────────────────────────────────────
-  {
-    match: ["draft fhsa emails", "fhsa email", "email fhsa"],
-    persona: "sarah",
-    isAction: true,
-    content: `DRAFT EMAIL — Awaiting your approval
-
-——— EMAIL 1: Marcus Reid ———
-To: marcus.reid@email.com
-Subject: Year-end reminder — your FHSA has $8,000 available
-
-Hi Marcus,
-
-Exciting news on the home purchase front — I saw you're pre-approved and actively looking. I wanted to flag that your FHSA still has $8,000 in contribution room available before December 31.
-
-Contributing now means a tax deduction this year and tax-free growth toward your down payment. Given your timeline, this could be meaningful.
-
-Happy to walk through the numbers if you'd like — even a quick 15-minute call this week.
-
-Sarah
-
-——— EMAIL 2: Aisha Mohammed ———
-To: aisha.mohammed@email.com
-Subject: Your FHSA — $8,000 available before year-end
-
-Hi Aisha,
-
-Wanted to send a quick note before the holidays get busy — your FHSA has $8,000 of contribution room remaining this year.
-
-Since you're actively saving for your first home, this is a great way to reduce your taxable income now and keep that money growing tax-free for your purchase. The deadline is December 31.
-
-Let me know if you'd like to talk through how it fits into your savings plan.
-
-Sarah`
-  },
-
-  // ── MARCUS — STR Filing tile ───────────────────────────────────────────────
-  {
-    match: ["walk me through", "walk through the case", "explain the case", "tell me about txn", "txn-2847"],
-    persona: "marcus",
-    content: `Here's the full case summary for TXN-2847:
-
-**Subject**
-Robert Beaumont (WS-7731029) — KYC risk rated Medium-High. Onboarded June 2021. One prior SAR filed in 2022, resolved with no further action.
-
-**What triggered the flag**
-On March 1st, $47,000 arrived via wire transfer from TD Bank at 9:14 AM. The same day at 2:32 PM, $46,800 was transferred out to a crypto exchange — with a Cayman Islands entity listed as the intermediary.
-
-**Why this is structuring**
-The near-identical in/out amounts (98.5% of inbound funds moved same-day), the speed of the transfer cycle, and the flagged Cayman intermediary are the three primary indicators. The Risk Engine flagged this as high priority — the combination of same-day cycle, near-identical amounts, and flagged intermediary jurisdiction meets the threshold for reasonable grounds to suspect.
-
-**The $200 gap**
-This is consistent with a fee-skimming pattern — the intermediary retaining a small amount. It's not exculpatory; it's actually a known structuring signature.
-
-**Why the deadline matters**
-Under PCMLTFA, we have 24 hours from the transaction date to file an STR with FINTRAC. The clock started March 1 at 2:32 PM — we have approximately 22 hours remaining.
-
-**Prior SAR context**
-The 2022 SAR was related to a different pattern (cash structuring) and was resolved. However, it establishes a risk history that strengthens the case for filing today.
-
-Ready to generate the pre-filled FINTRAC STR form? Just say the word.`
-  },
-
-  {
-    match: ["file the str", "generate the fintrac", "fintrac str form", "file str", "submit str"],
-    persona: "marcus",
-    isAction: true,
-    content: `FINTRAC STR FORM — Pre-filled, awaiting your approval
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUSPICIOUS TRANSACTION REPORT
-Financial Transactions and Reports Analysis Centre of Canada
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-SECTION 1 — REPORTING ENTITY
-Entity Name: Wealthsimple Financial Inc.
-FINTRAC Registration ID: 12994-WS
-Report Type: Suspicious Transaction Report (STR)
-Report Date: March 2, 2025
-Reporting Officer: Marcus Williams, AML Analyst
-
-SECTION 2 — SUBJECT INFORMATION
-Full Name: Robert Beaumont
-Client ID: WS-7731029
-KYC Risk Rating: Medium-High
-Account Opened: June 12, 2021
-Prior STR/SAR History: 1 prior SAR (2022, resolved)
-
-SECTION 3 — TRANSACTION DETAILS
-Transaction 1:
-  Type: Incoming wire transfer
-  Amount: CAD $47,000.00
-  Source: TD Bank
-  Date/Time: 2025-03-01 at 09:14 EST
-
-Transaction 2:
-  Type: Outbound transfer
-  Amount: CAD $46,800.00
-  Destination: Crypto exchange (name on file)
-  Intermediary: Cayman Islands entity — flagged jurisdiction
-  Date/Time: 2025-03-01 at 14:32 EST
-
-SECTION 4 — SUSPICIOUS INDICATORS
-☑ Rapid movement of funds (same-day cycle, in and out within 5 hours)
-☑ Near-identical amounts (98.5% of inbound funds transferred out same day)
-☑ Use of flagged jurisdiction intermediary (Cayman Islands)
-☑ Prior SAR history on account (2022, resolved)
-☑ Transaction pattern consistent with structuring to avoid reporting thresholds
-
-SECTION 5 — NARRATIVE
-On March 1, 2025, client Robert Beaumont (WS-7731029) received a wire transfer of CAD $47,000 from TD Bank. Within five hours, $46,800 was transferred outbound through a Cayman Islands intermediary to a crypto exchange. The near-identical amounts, same-day cycle, and flagged intermediary jurisdiction are consistent with a structuring pattern designed to move funds while avoiding detection thresholds. The client has one prior SAR on file from 2022. Based on review of transaction records, KYC profile, and prior history, the reporting officer has determined that reasonable grounds exist to suspect this transaction is related to a money laundering offence. This report is filed within the 24-hour PCMLTFA reporting window.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
-  },
-
-  {
-    match: ["what makes this structuring", "why is this structuring", "structuring vs coincidence", "explain structuring"],
-    persona: "marcus",
-    content: `Three elements together make this structuring rather than coincidence:
-
-**1. Same-day cycle with near-identical amounts**
-$47,000 in, $46,800 out — 98.5% of funds moved within 5 hours. Legitimate business transactions don't typically show this pattern. The $200 retention is consistent with intermediary fee skimming, which is itself a structuring signature.
-
-**2. Flagged jurisdiction intermediary**
-The Cayman Islands entity isn't illegal on its own, but it's a jurisdiction with known use in layering schemes. Combined with the transaction pattern, it elevates the risk significantly.
-
-**3. Prior SAR history**
-Robert Beaumont had a cash structuring SAR in 2022. That case resolved, but it establishes a risk profile. A second structuring pattern in three years is a meaningful escalation.
-
-**What would make it coincidence?**
-If Beaumont had a documented reason for the transfer — a property purchase, a business payment, a scheduled crypto investment — that context would change the picture. KYC shows no such documented purpose. That's the gap.
-
-All three factors together meet the reasonable grounds threshold under PCMLTFA. Ready to proceed with the STR?`
-  },
-
-  {
-    match: ["transaction timeline", "show timeline", "show the transactions"],
-    persona: "marcus",
-    content: `Full transaction timeline for TXN-2847 / Robert Beaumont (WS-7731029):
-
-**March 1, 2025**
-
-09:14 EST — Incoming wire, CAD $47,000
-  Source: TD Bank (verified sender on file)
-  Reference: WS-WIRE-20250301-4421
-  Status: Cleared normally, no initial flag
-
-14:32 EST — Outbound transfer, CAD $46,800
-  Destination: Crypto exchange (name on file)
-  Intermediary: Cayman Islands entity (flagged jurisdiction)
-  Transfer fee retained by intermediary: ~$200
-  Status: Completed
-
-14:33 EST — Risk Engine flag triggered
-  Pattern: Rapid transfer cycle
-  Risk Engine: High — structuring pattern
-  24-hour FINTRAC window opened: 14:32 EST March 1
-
-**March 2, 2025 (today)**
-
-~14:32 EST — FINTRAC reporting deadline
-  Hours remaining: approximately 22
-
-No additional account activity since the outbound transfer.`
-  },
-
-  // ── MARCUS — Pattern Review tile ──────────────────────────────────────────
-  {
-    match: ["does this look like layering", "is this layering", "layering pattern"],
-    persona: "marcus",
-    content: `The pattern is consistent with layering, but confidence is 61% — here's the breakdown:
-
-**What fits the layering profile**
-- Multiple source senders (4 distinct e-transfer originators) consolidating into one account
-- Consolidated outbound wire shortly after — "collect and move" is a classic layering step
-- Account is 6 weeks old — new accounts are frequently used as pass-through vehicles
-- KYC is incomplete: income unverified, so source of funds is unclear
-
-**What doesn't confirm it conclusively**
-- $38,400 total over 48 hours is below typical layering thresholds
-- E-transfers from 4 senders could be legitimate (rent collection, shared expenses, freelance payments)
-- Without income verification, we can't rule out a legitimate reason
-
-**The KYC gap is the real problem**
-If we had income verification, we could assess whether these deposits are plausible. Without it, we can't clear the account — but we also don't have enough to file a mandatory STR.
-
-**Recommendation**
-Initiate Enhanced Due Diligence: request income documentation and explanation of the 4 senders. If Mei-Ling Park can't provide satisfactory answers within 5 business days, escalate to voluntary SAR. Want me to draft the EDD request?`
-  },
-
-  {
-    match: ["what kyc is missing", "kyc gap", "missing kyc", "kyc incomplete"],
-    persona: "marcus",
-    content: `Here's what's missing from Mei-Ling Park's KYC profile (WS-8832011):
-
-**Required for full KYC — not on file:**
-- Income verification (employment letter or NOA)
-- Source of funds declaration
-- Employer or business details
-
-**On file (basic KYC only):**
-- Government-issued ID ✓
-- Address verification ✓
-- Date of birth ✓
-- SIN (partial, on file) ✓
-
-**Why it matters for this case**
-The 4 e-transfer senders can't be assessed without knowing if Park has a plausible income source that explains them. A freelancer or gig worker could legitimately receive from 4 parties. An account used for layering would show the same pattern.
-
-The income gap is what prevents us from clearing this — and what makes EDD the right next step rather than immediate SAR filing.
-
-Want me to draft the EDD documentation request to send to the client?`
-  },
-
-  // ── MARCUS — Queue Summary tile ───────────────────────────────────────────
-  {
-    match: ["show the 2 edge cases", "edge cases", "show edge cases"],
-    persona: "marcus",
-    content: `Here are the 2 overnight edge cases flagged for spot-check:
-
-**Edge Case 1 — WS-3341082**
-Amount: $4,200 e-transfer inbound
-AI decision: Cleared as recurring payroll
-Confidence: 39%
-Why it's borderline: Sender name partially matches a known payroll processor but the amount is 18% higher than the prior 6 months average. AI cleared it based on the overall pattern, but the variance is worth a second look.
-
-**Edge Case 2 — WS-5512901**
-Amount: $3,800 cash deposit
-AI decision: Cleared vs 24-month baseline
-Confidence: 38%
-Why it's borderline: Client historically deposits $2,000–$2,500 monthly in cash. $3,800 is a new high. No other risk indicators on the account. AI cleared it as a one-time variance, but it's outside the normal range.
-
-**My assessment**
-Both decisions look defensible. Edge Case 1 warrants a note in the file about the amount variance. Edge Case 2 is a statistical outlier but not a behavioral one.
-
-If you confirm both, I can log the review and mark the queue complete. Want to proceed?`
-  },
-
-  // ── RACHEL — Launch Blocker tile ──────────────────────────────────────────
-  {
-    match: ["show flagged phrase", "flagged phrase", "show the flagged", "what's flagged", "which email"],
-    persona: "rachel",
-    content: `Here's Email #3 in full context, with the flagged phrase highlighted:
-
-——— EMAIL #3 — Main Offer Email ———
-
-Subject: Unlock a better mortgage rate this spring
-
-Hi [First Name],
-
-Spring is the busiest season for home purchases and refinancing — and rates are moving. Whether you're buying your first home or looking to optimize your current mortgage, Wealthsimple has options worth exploring.
-
-❌ FLAGGED: "This mortgage rate is right for you."
-
-Our team is here to help you navigate your options with no pressure and full transparency.
-
-[CTA: Explore mortgage rates]
-
-———
-
-**Why it's flagged**
-"This mortgage rate is right for you" implies a suitability assessment has been made — that this specific rate is appropriate for this specific client. Under OSC Rule 31-103 s.13.2, suitability requires an individualized assessment. A mass-blast email cannot constitute one.
-
-**The fix**
-Replace with: "Competitive mortgage rates available for qualified applicants."
-
-This language presents rates as available (not recommended), which doesn't trigger the suitability rule. Emails #1 and #2 are fully cleared.
-
-Ready to approve the fix and issue clearance?`
-  },
-
-  {
-    match: ["approve fix", "approve the fix", "issue clearance", "approve and clear", "clear the campaign"],
-    persona: "rachel",
-    isAction: true,
-    content: `COMPLIANCE CLEARANCE — Awaiting your approval and signature
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-COMPLIANCE CLEARANCE DOCUMENT
-Wealthsimple Financial Inc. — Legal & Compliance
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Compliance Officer: Rachel Okonkwo
-Date: March 2, 2025
-Campaign: Spring Mortgage Refinance Campaign
-Scheduled Launch: Friday, March 7, 2025
-
-REVIEW SUMMARY
-Emails reviewed: 3
-Emails cleared without changes: 2 (Email #1, Email #2)
-Emails requiring amendment: 1 (Email #3)
-
-AMENDMENT RECORD
-Email #3 — Main Offer Email
-  Flagged phrase: "This mortgage rate is right for you."
-  Regulatory basis: OSC Rule 31-103, s.13.2 — Suitability Obligation
-  Risk assessment: Mass-blast language implying individualized suitability recommendation without prior assessment
-  Approved replacement: "Competitive mortgage rates available for qualified applicants."
-  Amendment status: Approved
-
-ATTESTATION
-I, Rachel Okonkwo, Compliance Officer, hereby attest that:
-1. All three campaign emails have been reviewed for regulatory compliance
-2. The amendment to Email #3 has been reviewed and approved
-3. The amended campaign is cleared for launch on March 7, 2025
-4. This review was conducted in accordance with CIRO Rule 3400 supervisory procedures
-
-[ Signature line ]
-Rachel Okonkwo — Compliance Officer
-Wealthsimple Financial Inc.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
-  },
-
-  {
-    match: ["what rule applies", "what does osc", "osc 31-103", "explain the rule"],
-    persona: "rachel",
-    content: `The applicable rule is **OSC Rule 31-103, Section 13.2 — Suitability Obligation**.
-
-**What it requires**
-Before making a recommendation or taking an action that could reasonably be considered a recommendation, a registered firm must take reasonable steps to ensure the recommendation is suitable for the specific client based on their individual circumstances.
-
-**Why "right for you" triggers it**
-The phrase "this mortgage rate is right for you" does two things that create exposure:
-1. It implies a recommendation has been made ("right for you")
-2. It implies that recommendation is personalized ("for you")
-
-A mass email campaign cannot perform an individualized suitability assessment. If a client relies on that phrase and the rate turns out to be unsuitable for their situation, Wealthsimple has a documented liability.
-
-**Why the replacement works**
-"Competitive mortgage rates available for qualified applicants" is informational, not advisory. It describes what exists, not what's recommended. It doesn't imply personalization. It passes the OSC test.
-
-**The broader pattern to watch**
-Any language using "right for you," "perfect for your situation," "we recommend," or "based on your profile" in a mass communication should be flagged. The rule requires individual assessment — marketing language that implies it without performing it is the exposure.
-
-Ready to approve the fix?`
-  },
-
-  // ── RACHEL — CIRO Filing tile ─────────────────────────────────────────────
-  {
-    match: ["draft section 7", "section 7 narrative", "training narrative", "write section 7"],
-    persona: "rachel",
-    isAction: true,
-    content: `CIRO QUARTERLY SUBMISSION — Pre-filled, awaiting your approval
-
-SECTION 7 — Training Records Narrative (DRAFT)
-
-During Q4 2024, two staff members completed mandatory compliance training modules four days past the designated completion deadline of November 30, 2024.
-
-The delay was attributable to an overlap in scheduled leave during the final week of November. Both employees were on pre-approved personal leave during the original deadline window. Remedial completion was confirmed by December 4, 2024 — within five business days of the original deadline.
-
-No substantive compliance knowledge gap resulted from the delay. Both employees passed the module assessments with scores above the required threshold. Updated completion records have been logged in the firm's training management system.
-
-Going forward, the compliance team has implemented a 10-business-day advance notification for upcoming training deadlines to allow for leave conflict resolution before the deadline window closes.
-
-——— END SECTION 7 ———
-
-Note: Sections 1–3, 5, 6, and 8 have been pre-filled from the Q4 audit trail and are ready for your review. Section 4 (Complaint Log Attestation) still requires your signature once you've reviewed the three Q4 complaints on file (all resolved).`
-  },
-
-  {
-    match: ["what to attest in section 4", "section 4", "complaint attestation", "attest section 4"],
-    persona: "rachel",
-    content: `Section 4 requires you to personally attest to the following:
-
-**The three Q4 complaints on file:**
-
-1. **Complaint #WS-C-2024-087** (October)
-   Client alleged a delay in TFSA transfer processing. Resolved in 6 business days — within our SLA. Client notified of resolution.
-
-2. **Complaint #WS-C-2024-091** (November)
-   Client disputed a fee charge on a managed portfolio. Fee was correctly applied per the client agreement. Client provided with fee schedule documentation. Resolved, client accepted.
-
-3. **Complaint #WS-C-2024-098** (December)
-   Client reported difficulty accessing statements through the app. Technical issue confirmed; resolved by the product team within 48 hours. Client follow-up completed.
-
-**What your attestation confirms:**
-- All three complaints were received and logged within required timeframes
-- Each was investigated and resolved in accordance with CIRO Rule 3100 (Complaints Handling)
-- No complaints warranted escalation to CIRO or external review
-- The complaint log is accurate and complete as of December 31, 2024
-
-Ready to generate the full submission with both sections included?`
-  },
-
-  // ── RACHEL — Bottom orchestrator chat ────────────────────────────────────
-  {
-    match: ["what's blocking the current campaign", "blocking the current campaign", "what is blocking", "blocking the campaign", "campaign blocked", "campaign blocker"],
-    persona: "rachel",
-    content: `I checked across Comms Review, OSC/CIRO Regulatory DB, and Policy Vault. Here is what is blocking the Spring Mortgage Refinance Campaign from launching Friday:
-
-**The issue**
-Email #3 — the main offer email — contains the phrase "This mortgage rate is right for you." That is a suitability claim under OSC Rule 31-103, s.13.2. A mass-blast email cannot constitute an individualized client assessment. If it goes out as written, it creates direct regulatory exposure.
-
-**Status**
-Emails #1 and #2 are fully cleared. Email #3 is the only blocker. The campaign cannot launch until it is resolved.
-
-**The fix**
-Replace the flagged phrase with: "Competitive mortgage rates available for qualified applicants." This is informational language — it describes what is available without implying a personalized recommendation.
-
-**What needs to happen**
-You review and approve the fix, then issue a compliance clearance document. Once that is signed, the campaign is clear for Friday launch.
-
-Want me to prepare the clearance document now?`
-  },
-
-  // ── GENERAL FALLBACKS ─────────────────────────────────────────────────────
-  {
-    match: ["done", "submitted", "approved", "confirm", "looks good", "send it"],
-    persona: "any",
-    content: `Done — submitted and logged.`
-  }
+// ─── MOCK RESEARCH ───────────────────────
+const RESEARCH = {
+  NVDA:{rating:"BUY",target:"$210",range:"$160–$260",earnings:"Q4 FY26: Beat EPS by 8%, Blackwell revenue $11B, guided Q1 above consensus.",bull:{firm:"Goldman Sachs",text:"Blackwell ramp still early — data center capex from hyperscalers accelerating into 2026."},bear:{firm:"New Street",text:"Stock pricing perfection; any demand softness or China export curbs hit hard."}},
+  TSLA:{rating:"HOLD",target:"$350",range:"$200–$500",earnings:"Q4 2025: Deliveries missed consensus; auto margins compressed to 13.6%.",bull:{firm:"Wedbush",text:"FSD and robotaxi optionality not priced in — energy storage a sleeper catalyst."},bear:{firm:"UBS",text:"Core EV losing share to BYD; valuation requires robotaxi success that isn't proven."}},
+  AMD: {rating:"BUY",target:"$261",range:"$180–$358",earnings:"Q4 2025: Data center revenue $3.9B, MI300X ahead of schedule.",bull:{firm:"Mizuho",text:"Multi-year Meta GPU deal worth up to $60B — first real NVDA alternative at scale."},bear:{firm:"Bernstein",text:"AI GPU market still 80% NVDA; AMD is a strong #2 in a winner-takes-most dynamic."}},
+  VRT: {rating:"BUY",target:"$130",range:"$98–$165",earnings:"Q3 2025: Beat EPS 12%, raised full-year guidance on data center cooling demand.",bull:{firm:"Goldman Sachs",text:"Power and cooling are the AI build-out bottleneck — VRT is the infrastructure pick."},bear:{firm:"Morgan Stanley",text:"35x forward multiple leaves no room for execution misses."}},
+  AMZN:{rating:"STRONG BUY",target:"$280",range:"$230–$320",earnings:"Q4 2025: AWS accelerated to 21% growth, advertising +24%.",bull:{firm:"JPMorgan",text:"AWS margin expansion and ad flywheel create durable compounding well into 2027."},bear:{firm:"Redburn",text:"Regulatory overhang in EU and antitrust scrutiny on ad business."}},
+  COUR:{rating:"HOLD",target:"$11",range:"$7–$16",earnings:"Q3 2025: Revenue missed consensus for third straight quarter.",bull:{firm:"Needham",text:"AI-enhanced course catalog differentiated — monetization lag should be temporary."},bear:{firm:"Piper Sandler",text:"Free alternatives multiplying; paying user growth has stalled."}},
+  NIO: {rating:"HOLD",target:"$5.50",range:"$3–$9",earnings:"Q4 2025: Deliveries below guidance; swap station margins under pressure.",bull:{firm:"CICC",text:"ONVO sub-brand targets mass market — volume leverage possible in H2 2026."},bear:{firm:"Nomura",text:"Cash burn pace requires dilutive capital raise; balance sheet a concern."}},
+  HIMX:{rating:"BUY",target:"$9.50",range:"$6.50–$13",earnings:"Q3 2025: Automotive display recovery ahead of schedule.",bull:{firm:"Daiwa",text:"AR/VR design win with major OEM provides multi-year revenue visibility."},bear:{text:"Consumer display segment dependent on uncertain China end-market demand."}},
+  SIDU:{rating:"HOLD",target:"$1.10",range:"$0.60–$1.80",earnings:"Q3 2025: Revenue below guidance; liquidity tightened.",bull:{text:"Small government contracts provide near-term revenue floor."},bear:{text:"Going-concern risk flagged; sub-$1M quarterly revenue remains a concern."}},
+  AMC: {rating:"SELL",target:"$2.50",range:"$1.50–$5",earnings:"Q3 2025: Box office recovery slower than projected; interest expense elevated.",bull:{text:"Debt refinancing removes near-term bankruptcy risk."},bear:{firm:"Citi",text:"Structural theatrical decline continues; debt load requires execution perfection."}},
+  AAPL:{rating:"BUY",target:"$290",range:"$240–$330",earnings:"Q1 FY26: Services hit record $27.9B, iPhone slightly below estimates.",bull:{firm:"Morgan Stanley",text:"Apple Intelligence driving upgrade supercycle — installed base of 2.2B devices."},bear:{firm:"Barclays",text:"China revenue declining for fourth consecutive quarter; regulatory risk rising."}},
+  MSFT:{rating:"STRONG BUY",target:"$480",range:"$420–$540",earnings:"Q2 FY26: Azure grew 31%, Copilot seats ahead of expectations.",bull:{firm:"JPMorgan",text:"Enterprise AI adoption is multi-year; Azure is the Fortune 500 default cloud."},bear:{firm:"KeyBanc",text:"35x forward P/E limits upside without sustained execution on AI monetization."}},
+  RY:  {rating:"BUY",target:"$170",range:"$150–$185",earnings:"Q1 FY26: Wealth management strong; credit provisions in line with guidance.",bull:{firm:"TD Securities",text:"HSBC Canada integration ahead of schedule — adds meaningful fee revenue."},bear:{firm:"CIBC",text:"Canadian housing correction risk creates provision uncertainty through 2026."}},
+  ENB: {rating:"BUY",target:"$66",range:"$56–$74",earnings:"Q3 2025: Mainline volumes strong; US Gulf Coast acquisition performing well.",bull:{firm:"RBC Capital",text:"6% dividend yield with CPI-linked contracts — rare inflation-protected income."},bear:{firm:"Raymond James",text:"Permitting delays on growth projects threaten 2026 capex deployment."}},
+  IMG: {rating:"BUY",target:"$8.50",range:"$6–$12",earnings:"Q3 2025: Production beat on higher silver prices.",bull:{firm:"TD Securities",text:"Silver price tailwind from industrial and green energy transition demand."},bear:{firm:"Scotiabank",text:"Single-mine concentration at San Dimas; Mexico jurisdiction risk persists."}},
+  URAN:{rating:"BUY",target:"$34",range:"$28–$42",earnings:"N/A — ETF vehicle, no earnings.",bull:{text:"Nuclear capacity additions globally driving multi-year uranium demand cycle."},bear:{text:"Kazatomprom supply resumption could pressure spot uranium prices."}},
+};
+
+const SEARCH_EXTRA = [
+  {ticker:"GOOG",name:"Alphabet Inc.",currentPrice:307.00,sector:"Technology",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
+  {ticker:"META",name:"Meta Platforms",currentPrice:655.00,sector:"Technology",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
+  {ticker:"SHOP",name:"Shopify Inc.",currentPrice:126.00,sector:"Technology",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
+  {ticker:"TD",name:"Toronto-Dominion Bank",currentPrice:76.40,sector:"Financials",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
+  {ticker:"CNR",name:"Canadian National Railway",currentPrice:158.20,sector:"Industrials",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
+  {ticker:"SU",name:"Suncor Energy",currentPrice:56.80,sector:"Energy",assetType:"EQUITY",avgCost:0,shares:0,lastPurchaseDate:"2024-01-01"},
 ];
 
-// ─── MOCK RESPONSE MATCHER ────────────────────────────────────────────────────
-function findMockResponse(text, personaId) {
-  const lower = text.toLowerCase();
-  for (const r of MOCK_RESPONSES) {
-    if (r.persona !== "any" && r.persona !== personaId) continue;
-    if (r.match.some(kw => lower.includes(kw))) return r;
+// all positions flat for search
+const ALL_POSITIONS = [
+  ...Object.values(ACCOUNTS).flatMap(a=>a.positions),
+  ...SEARCH_EXTRA
+].filter((p,i,arr)=>arr.findIndex(x=>x.ticker===p.ticker)===i);
+
+// ─── PURE LOGIC ──────────────────────────
+function calcTax(pos, type) {
+  try {
+    if (type==="TFSA") return {type:"TAX_FREE",msg:"Completely tax-free under ITA §146. No capital gains reporting required."};
+    if (type==="CRYPTO") return {type:"CRYPTO_NOTE",msg:"Crypto dispositions are taxable events in Canada. 50% of gains are included in taxable income under CRA guidelines."};
+    const gain = (pos.currentPrice - pos.avgCost)*pos.shares;
+    const days  = Math.floor((new Date()-new Date(pos.lastPurchaseDate))/86400000);
+    if (gain<0 && days<30) return {type:"SUPERFICIAL_LOSS",msg:`Superficial Loss Warning (ITA §54) — selling within 30 days of last purchase (${days} days ago) may result in the loss being denied by CRA.`,amount:Math.abs(gain)};
+    if (gain>=0) return {type:"CAPITAL_GAIN",msg:`Estimated gain: $${gain.toFixed(2)}. Under CRA, 50% ($${(gain*.5).toFixed(2)}) is included in taxable income.`,amount:gain};
+    return {type:"CAPITAL_LOSS",msg:`Estimated loss: $${Math.abs(gain).toFixed(2)}. Can offset gains this year, carry back 3 years, or carry forward indefinitely.`,amount:Math.abs(gain)};
+  } catch { return {type:"UNAVAILABLE",msg:"Tax context unavailable."}; }
+}
+
+function calcSectors(positions) {
+  try {
+    const total=positions.reduce((s,p)=>s+p.currentPrice*p.shares,0);
+    const map={};
+    positions.forEach(p=>{map[p.sector]=(map[p.sector]||0)+p.currentPrice*p.shares;});
+    const allocs=Object.entries(map).map(([s,v])=>({sector:s,pct:(v/total)*100})).sort((a,b)=>b.pct-a.pct);
+    const warn=allocs.find(a=>a.pct>40);
+    return {allocs,hasWarn:!!warn,warnSector:warn?.sector,warnPct:warn?.pct};
+  } catch {return {allocs:[],hasWarn:false};}
+}
+
+function getMarketStatus() {
+  const et=new Date(new Date().toLocaleString("en-US",{timeZone:"America/New_York"}));
+  const day=et.getDay(),mins=et.getHours()*60+et.getMinutes();
+  if(day===0||day===6) return {s:"CLOSED",next:"Monday 9:30 AM ET"};
+  if(mins>=570&&mins<580) return {s:"OPEN_EARLY"};
+  if(mins>=580&&mins<960) return {s:"OPEN_NORMAL"};
+  const d=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  return {s:"CLOSED",next:`${day===5?"Monday":d[day+1]} 9:30 AM ET`};
+}
+
+// ─── CHART DATA ──────────────────────────
+function genChartData(ticker, range) {
+  const seed = ticker.split("").reduce((s,c)=>s+c.charCodeAt(0),0);
+  const rng = (i,amp)=>Math.sin(i*0.3+seed)*amp + Math.cos(i*0.7+seed*0.3)*amp*0.5;
+  const pos = ALL_POSITIONS.find(p=>p.ticker===ticker);
+  const base = pos?.currentPrice || 100;
+  const pts = {
+    "1D":24,"1W":7,"1M":30,"3M":90,"1Y":52,"5Y":60
+  }[range]||30;
+  const data=[];
+  for(let i=0;i<pts;i++){
+    const trend = (i/pts)*base*0.12;
+    const noise = rng(i,base*0.04);
+    const price = Math.max(base*0.5, base - base*0.15 + trend + noise);
+    data.push({i,v:price});
+  }
+  // end at current price
+  data[data.length-1].v=base;
+  return data;
+}
+
+// ─── HELPERS ─────────────────────────────
+const gfmt  = n=>n>=1000?`$${(n/1000).toFixed(1)}k`:`$${n.toFixed(2)}`;
+const fmtL  = n=>`$${n.toLocaleString("en-CA",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+const gp    = (c,a)=>(((c-a)/a)*100).toFixed(1);
+const isPos = (c,a)=>c>=a;
+const rCol  = r=>({"STRONG BUY":T.green,"BUY":"#22C55E","HOLD":T.sub,"SELL":T.red,"N/A":T.muted}[r]||T.muted);
+const covSt = l=>({"HIGH":{dot:"#22C55E",tx:T.greenTx,bg:T.greenBg,lbl:"Well covered"},"MEDIUM":{dot:T.amber,tx:T.amberTx,bg:T.amberBg,lbl:"Moderate coverage"},"LOW":{dot:T.red,tx:T.redTx,bg:T.redBg,lbl:"Limited coverage"}}[l]||{dot:T.muted,tx:T.sub,bg:T.pill,lbl:"Unknown"});
+const SC = ["#00C896","#6366F1","#F59E0B","#3B82F6","#EC4899","#8B5CF6","#14B8A6","#F97316"];
+
+function inAccount(ticker) {
+  for (const a of Object.values(ACCOUNTS)) {
+    if (a.positions.find(p=>p.ticker===ticker)) return a;
   }
   return null;
 }
 
-// ─── STREAMING CLAUDE CALL ────────────────────────────────────────────────────
-async function streamClaude(messages, system, onChunk) {
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      model:"claude-sonnet-4-20250514", max_tokens:1200, stream:true, system,
-      messages: messages
-        .filter(m => m.role && m.content && !m.isAction)
-        .map(m => ({ role:m.role, content:m.content }))
-    })
+function buildSysPrompt(pos, acctType, news, isOwned) {
+  const nc = (news||[]).filter(Boolean);
+  const newsCtx = nc.length ? `\n\nWealthsimple News:\n${nc.map(h=>`- ${h}`).join("\n")}` : "";
+  const ctx = isOwned
+    ? `${pos.ticker} | ${pos.name} | Acct: ${acctType} | ${pos.shares} shares | Avg $${pos.avgCost} | Now $${pos.currentPrice} | Last bought: ${pos.lastPurchaseDate}`
+    : `${pos.ticker} | ${pos.name} | $${pos.currentPrice} | Not in portfolio`;
+  return `ROLE: You are Simple Research, an AI assistant in Wealthsimple. Surface analyst data, Canadian tax context. NOT a financial advisor.
+CONTEXT: ${ctx}${newsCtx}
+FORMAT: Consensus rating, price target+range, analyst count, earnings (1 sentence), bull+bear with firm names. Source before data. "analysts say."
+HARD REFUSALS: No buy/sell recommendations, no personalized tax advice.
+ADVICE CREEP: "should I buy/sell" → research then: "I can surface context, but the decision is yours — by design. For personalized advice, Wealthsimple advisors are available."
+CANADIAN TAX: TFSA tax-free (ITA 146). Non-reg 50% inclusion. Superficial loss 30d (ITA 54). Crypto dispositions taxable.
+DISCLAIMER: End every response: "This is informational only and does not constitute financial, investment, or tax advice."`;
+}
+
+// ─── API HELPER ──────────────────────────────────────────────────────────────
+// Tries /api/claude proxy (Netlify deployment) first, then falls back to direct
+// Anthropic API which works in the Claude artifact sandbox.
+async function callClaude(body) {
+  // First, probe whether the proxy exists (cheap HEAD-like check via a fast fetch)
+  // If we get any real HTTP response (even 500), the proxy is deployed — use it.
+  // Only fall back to direct if we get a network error (proxy doesn't exist = artifact/local).
+  let useProxy = false;
+  try {
+    const probe = await fetch("/api/claude", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1,messages:[{role:"user",content:"hi"}]}),
+      signal: AbortSignal.timeout(4000)
+    });
+    // Any HTTP response means the proxy route exists
+    useProxy = true;
+  } catch(e) {
+    // Network error = route doesn't exist (artifact sandbox, local dev without netlify dev)
+    useProxy = false;
+  }
+
+  if (useProxy) {
+    const r = await fetch("/api/claude", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body)
+      // No timeout — web search calls can take 20-30s, trust Netlify's 26s limit
+    });
+    return r.json();
+  }
+
+  // Direct call — artifact sandbox (key injected by Claude.ai automatically)
+  const headers = {
+    "Content-Type":"application/json",
+    "anthropic-version":"2023-06-01",
+    "anthropic-beta":"prompt-caching-2024-07-31",
+  };
+  if (window.__ANTHROPIC_KEY__) headers["x-api-key"] = window.__ANTHROPIC_KEY__;
+  const r2 = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST", headers, body: JSON.stringify(body)
   });
-  const reader = r.body.getReader();
-  const dec = new TextDecoder();
-  let full = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    for (const line of dec.decode(value).split("\n")) {
-      if (line.startsWith("data: ")) {
-        try {
-          const d = JSON.parse(line.slice(6));
-          if (d.delta?.text) { full += d.delta.text; onChunk(full); }
-        } catch {}
-      }
-    }
-  }
-  return full;
+  return r2.json();
 }
 
-// ─── CHAT HOOK ───────────────────────────────────────────────────────────────
-function useChat(system, sources, onApproved, personaId) {
-  const [msgs,    setMsgs]    = useState([]);
-  const [busy,    setBusy]    = useState(false);
-  const [routing, setRouting] = useState(false);
-  const [rStep,   setRStep]   = useState(0);
+// ─── RESEARCH CACHE (4-hour TTL, shared across all users in session) ──────────
+const RESEARCH_CACHE = new Map(); // ticker -> { raw, ts }
+const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours in ms
 
-  const resolveResponse = (mock) => {
-    if (mock.isAction) {
-      return {
-        isAction:true, content:mock.content, pending:true,
-        approve: () => {
-          setMsgs(p2 => p2.map((m, i) => i === p2.length - 1 ? {...m, pending:false, done:true} : m));
-          setTimeout(() => {
-            setMsgs(p2 => [...p2, { role:"assistant", content:"Done — submitted and logged." }]);
-            if (onApproved) onApproved();
-          }, 400);
-        },
-        edit: () => setMsgs(p2 => [...p2, { role:"assistant", content:"Of course — what would you like to change?" }])
-      };
-    }
-    return { role:"assistant", content:mock.content };
+function getCachedResearch(ticker) {
+  const entry = RESEARCH_CACHE.get(ticker);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL) { RESEARCH_CACHE.delete(ticker); return null; }
+  return entry.raw;
+}
+function setCachedResearch(ticker, raw) {
+  RESEARCH_CACHE.set(ticker, { raw, ts: Date.now() });
+}
+
+// ─── DAILY TICKER CHAT CAP (5 tickers/day, resets at midnight) ───────────────
+const dailyChatState = { date: new Date().toDateString(), tickers: new Set() };
+
+function getDailyChatState() {
+  const today = new Date().toDateString();
+  if (dailyChatState.date !== today) {
+    dailyChatState.date = today;
+    dailyChatState.tickers.clear();
+  }
+  return dailyChatState;
+}
+function hasReachedDailyTickerCap(ticker) {
+  const state = getDailyChatState();
+  if (state.tickers.has(ticker)) return false; // already used today, allowed
+  return state.tickers.size >= 5;
+}
+function markTickerUsed(ticker) {
+  getDailyChatState().tickers.add(ticker);
+}
+
+// ─── RESEARCH PANEL PROMPT ───────────────
+function buildResearchPrompt(pos, acctType, news, isOwned) {
+  const nc = (news||[]).filter(Boolean);
+  const newsCtx = nc.length ? `\n\nPlatform news:\n${nc.map(h=>`- ${h}`).join("\n")}` : "";
+  const posCtx = isOwned
+    ? `${pos.ticker} (${pos.name}) | Account: ${acctType} | ${pos.shares} shares | Avg cost $${pos.avgCost} | Current $${pos.currentPrice} | Last bought: ${pos.lastPurchaseDate}`
+    : `${pos.ticker} (${pos.name}) | Current $${pos.currentPrice} | Not in portfolio`;
+  return `You are Simple Research inside Wealthsimple. NOT a financial advisor.
+
+USER POSITION: ${posCtx}${newsCtx}
+
+TASK: Search for current analyst data on ${pos.ticker}. Reply in EXACTLY this format — no extra text:
+
+CONSENSUS: [BUY/STRONG BUY/HOLD/SELL] · $[avg PT] avg PT · [N] analysts
+EARNINGS: [one clause, e.g. Q4 beat: EPS $X vs $Y est.]
+BULL: [Firm ($PT)]: [one-line thesis]
+BEAR: [Firm ($PT)]: [one-line risk]
+
+Then: [CITATION: Firm | Claim | Date] — 2-3 only.
+
+No preamble. No extra lines. No disclaimer.`;
+}
+
+// ─── CITATION PARSER ─────────────────────
+function parseCitations(text) {
+  const lines = text.split('\n');
+  const citations = [];
+  // Primary: explicit [CITATION: Firm | Claim | Date] blocks
+  lines.forEach(line => {
+    const m = line.match(/\[CITATION:\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\]/);
+    if (m) citations.push({ source: m[1].trim(), claim: m[2].trim(), date: m[3].trim() });
+  });
+  // Fallback: extract firm names from BULL/BEAR lines e.g. "BULL: Morgan Stanley ($250): ..."
+  if (citations.length === 0) {
+    lines.forEach(line => {
+      const bull = line.match(/^BULL:\s*([^($\n]+?)\s*\(\$/);
+      const bear = line.match(/^BEAR:\s*([^($\n]+?)\s*\(\$/);
+      if (bull) citations.push({ source: bull[1].trim(), claim: "Bull case", date: "Live" });
+      if (bear) citations.push({ source: bear[1].trim(), claim: "Bear case", date: "Live" });
+    });
+  }
+  return citations;
+}
+function stripCitations(text) {
+  return text.replace(/\[CITATION:[^\]]+\]/g, '').replace(/\nCITATIONS:\n?/g, '').trim();
+}
+
+// ─── RESEARCH RESPONSE PARSER ───────────────
+// Parses the labeled 4-line format into structured fields
+function parseResearch(text) {
+  const get = (label) => {
+    const m = text.match(new RegExp(label + ':?\\s*(.+)', 'i'));
+    return m ? m[1].trim() : null;
   };
+  return {
+    consensus: get('CONSENSUS'),
+    earnings:  get('EARNINGS'),
+    bull:      get('BULL'),
+    bear:      get('BEAR'),
+  };
+}
 
-  const send = async (text, extraCtx = "") => {
-    const next = [...msgs, { role:"user", content:text }];
-    setMsgs(next);
-    setBusy(true);
-    setRouting(true);
-    setRStep(0);
-    // Animate through sources
-    for (let i = 0; i <= sources.length; i++) {
-      await new Promise(r => setTimeout(r, 180));
-      setRStep(i);
-    }
-    await new Promise(r => setTimeout(r, 200));
-    setRouting(false);
+// ─── PRICE CHART ─────────────────────────
+function PriceChart({ ticker, color }) {
+  const [range, setRange] = useState("1M");
+  const data = genChartData(ticker, range);
+  const W=360, H=140, PAD=8;
+  const vals=data.map(d=>d.v);
+  const minV=Math.min(...vals), maxV=Math.max(...vals);
+  const span=maxV-minV||1;
+  const px=(i)=>PAD+(i/(data.length-1))*(W-PAD*2);
+  const py=(v)=>H-PAD-(((v-minV)/span)*(H-PAD*2));
+  const pts=data.map(d=>`${px(d.i)},${py(d.v)}`).join(" ");
+  const fillPts=`${px(0)},${H} ${pts} ${px(data.length-1)},${H}`;
+  const startV=data[0].v, endV=data[data.length-1].v;
+  const up = endV>=startV;
+  const chgPct=(((endV-startV)/startV)*100).toFixed(2);
+  const RANGES=["1D","1W","1M","3M","1Y","5Y"];
+  return (
+    <div>
+      <div style={{fontSize:12,color:up?T.green:T.red,fontWeight:600,marginBottom:4,paddingLeft:2}}>
+        {up?"+":""}{chgPct}% {range==="1D"?"today":range==="1W"?"past week":range==="1M"?"past month":range==="3M"?"past 3 months":range==="1Y"?"past year":"past 5 years"}
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:120,display:"block"}}>
+        <defs>
+          <linearGradient id={`g_${ticker}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.18"/>
+            <stop offset="100%" stopColor={color} stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+        <polygon points={fillPts} fill={`url(#g_${ticker})`}/>
+        <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+        <circle cx={px(data.length-1)} cy={py(endV)} r="3.5" fill={color}/>
+      </svg>
+      <div style={{display:"flex",gap:2,marginTop:4}}>
+        {RANGES.map(r=>(
+          <button key={r} onClick={()=>setRange(r)}
+            style={{flex:1,padding:"5px 0",background:range===r?T.text:"transparent",border:`1px solid ${range===r?T.text:T.border}`,borderRadius:6,fontSize:11,fontWeight:range===r?700:500,color:range===r?"#fff":T.sub,cursor:"pointer",transition:"all 0.15s"}}>
+            {r}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-    // Check mock responses first — instant, no API call needed
-    const mock = findMockResponse(text, personaId);
-    if (mock) {
-      // Simulate a brief "thinking" pause so it feels natural on screen
-      await new Promise(r => setTimeout(r, 400));
-      setMsgs(p => [...p, resolveResponse(mock)]);
-      setBusy(false);
-      return;
-    }
+// ─── TAX DISPLAY ─────────────────────────
+function TaxPanel({ result }) {
+  if (!result) return null;
+  const S = {
+    TAX_FREE:       {bg:T.greenBg,br:"#BBF7D0",col:T.greenTx,icon:"✓",lbl:"Tax-Free (TFSA — ITA §146)"},
+    CRYPTO_NOTE:    {bg:T.amberBg,br:"#FDE68A",col:T.amberTx,icon:"ℹ",lbl:"Crypto Taxable Event"},
+    CAPITAL_GAIN:   {bg:T.blueBg, br:"#BFDBFE",col:T.blueTx, icon:"ℹ",lbl:"Estimated Capital Gain"},
+    CAPITAL_LOSS:   {bg:T.amberBg,br:"#FDE68A",col:T.amberTx,icon:"ℹ",lbl:"Estimated Capital Loss"},
+    SUPERFICIAL_LOSS:{bg:T.redBg, br:"#FECACA",col:T.redTx,  icon:"⚠",lbl:"Superficial Loss Warning (ITA §54)"},
+    UNAVAILABLE:    {bg:T.pill,   br:T.border, col:T.sub,    icon:"–",lbl:"Tax Context Unavailable"},
+  };
+  const s = S[result.type]||S.UNAVAILABLE;
+  return (
+    <div style={{padding:"12px 14px",background:s.bg,border:`1px solid ${s.br}`,borderRadius:10,marginTop:12}}>
+      <div style={{fontSize:11,fontWeight:700,color:s.col,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:5}}>{s.icon} {s.lbl}</div>
+      <div style={{fontSize:12,color:s.col,lineHeight:1.65}}>{result.msg}</div>
+      <div style={{fontSize:11,color:T.muted,marginTop:6}}>Informational only — consult a tax professional.</div>
+    </div>
+  );
+}
 
-    // Fallback to live API for anything not in the mock bank
-    setMsgs(p => [...p, { role:"assistant", content:"", stream:true }]);
+// ─── TIMING ──────────────────────────────
+function TimingBadge() {
+  const s = getMarketStatus();
+  if (s.s==="OPEN_EARLY") return <div style={{padding:"7px 12px",background:T.amberBg,border:`1px solid #FDE68A`,borderRadius:8,fontSize:12,color:T.amberTx,lineHeight:1.5}}>⚡ <strong>Market just opened</strong> — spreads widest in first 10 min.</div>;
+  if (s.s==="OPEN_NORMAL") return <div style={{padding:"7px 12px",background:T.greenBg,border:`1px solid #BBF7D0`,borderRadius:8,fontSize:12,color:T.greenTx,lineHeight:1.5}}>● <strong>Market open</strong></div>;
+  return <div style={{padding:"7px 12px",background:T.pill,border:`1px solid ${T.border}`,borderRadius:8,fontSize:12,color:T.sub,lineHeight:1.5}}>○ <strong>Markets closed</strong> — Next: {s.next}</div>;
+}
+
+// ─── TICKER DETAIL SCREEN ────────────────
+function TickerScreen({ ticker, acctType, onBack }) {
+  const pos = ALL_POSITIONS.find(p=>p.ticker===ticker) || {ticker,name:ticker,currentPrice:0,avgCost:0,shares:0,assetType:"EQUITY",lastPurchaseDate:"2024-01-01",sector:"Unknown"};
+  const acct = inAccount(ticker);
+  const isOwned = !!acct;
+  const news = NEWS[ticker]||[];
+  const cov  = COV[ticker];
+  const cs   = cov ? covSt(cov.level) : null;
+  const res  = RESEARCH[ticker];
+  const isCrypto = pos.assetType==="CRYPTO";
+  const isETF    = pos.assetType==="ETF";
+  const effectiveAcctType = acct?.type || acctType || "NON_REG";
+
+  const [loadingRes,  setLoadingRes]  = useState(!isCrypto&&!isETF);
+  const [showRes,     setShowRes]     = useState(false);
+  const [liveRes,     setLiveRes]     = useState(null);   // live API response text
+  const [resError,    setResError]    = useState(false);
+  const [taxResult,   setTaxResult]   = useState(null);
+  const [showTax,     setShowTax]     = useState(false);
+  const [chatOpen,    setChatOpen]    = useState(false);
+  const [messages,    setMessages]    = useState([]);
+  const [input,       setInput]       = useState("");
+  const [sending,     setSending]     = useState(false);
+  const [showTrade,   setShowTrade]   = useState(false);
+  const endRef = useRef(null);
+
+  const pnl = isOwned ? (pos.currentPrice - pos.avgCost)*pos.shares : 0;
+  const pct = isOwned ? gp(pos.currentPrice, pos.avgCost) : null;
+  const up  = isOwned ? isPos(pos.currentPrice, pos.avgCost) : true;
+  const chartColor = up ? T.green : T.red;
+
+  // ── Live research fetch — 4hr cache, 30s timeout, falls back to mock ──
+  useEffect(()=>{
+    if(isCrypto||isETF){setLoadingRes(false);return;}
+
+    // Check 4-hour cache first
+    const cached = getCachedResearch(ticker);
+    if(cached){ setLiveRes(cached); setLoadingRes(false); return; }
+
+    setLoadingRes(true);
+    setLiveRes(null);
+
+    const sysPrompt = buildResearchPrompt(pos, effectiveAcctType, news, isOwned);
+    const timer = setTimeout(()=>setLoadingRes(false), 30000);
+
+    callClaude({
+      model:"claude-sonnet-4-20250514",
+      max_tokens:400,
+      system:[{type:"text",text:sysPrompt,cache_control:{type:"ephemeral"}}],
+      tools:[{type:"web_search_20250305",name:"web_search"}],
+      messages:[{role:"user",content:`Fetch current analyst research for ${ticker}. Use web search to find the latest consensus rating, price targets, bull case, and bear case. Be specific about which firms said what.`}]
+    })
+    .then(d=>{
+      clearTimeout(timer);
+      const raw = d.content?.filter(b=>b.type==="text").map(b=>b.text).join("") || "";
+      if(raw){ setCachedResearch(ticker, raw); setLiveRes(raw); }
+    })
+    .catch(()=>clearTimeout(timer))
+    .finally(()=>setLoadingRes(false));
+
+    return ()=>clearTimeout(timer);
+  },[ticker]);
+
+  useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
+
+  const MAX_CHAT = 5;
+  const MAX_TICKERS = 5;
+  const sendChat = async () => {
+    const text=input.trim();
+    if(!text||sending) return;
+    if(messages.filter(m=>m.role==="user").length >= MAX_CHAT) return;
+    if(hasReachedDailyTickerCap(ticker)) return;
+    markTickerUsed(ticker);
+    setInput("");
+    const um={role:"user",content:text};
+    const msgs=[...messages,um];
+    setMessages(msgs);
+    setSending(true);
     try {
-      let out = "";
-      await streamClaude(next, system + (extraCtx ? `\n\n${extraCtx}` : ""), chunk => {
-        out = chunk;
-        setMsgs(p => {
-          const u = [...p];
-          const li = u.length - 1;
-          if (u[li]?.stream) u[li] = { role:"assistant", content:chunk, stream:true };
-          return u;
-        });
+      const sysPrompt = buildSysPrompt(pos, effectiveAcctType, news, isOwned);
+      const d=await callClaude({
+          model:"claude-sonnet-4-20250514",
+          max_tokens:1000,
+          system:[{ type:"text", text:sysPrompt, cache_control:{ type:"ephemeral" } }],
+          tools:[{ type:"web_search_20250305", name:"web_search" }],
+          messages:msgs.map(({role,content})=>({role,content}))
       });
-      const isAct = /awaiting your approval|pre-filled|draft (email|form|memo|document|clearance|submission)/i.test(out);
-      setMsgs(p => {
-        const u = [...p];
-        const li = u.length - 1;
-        if (isAct) {
-          u[li] = {
-            isAction:true, content:out, pending:true,
-            approve: () => {
-              setMsgs(p2 => p2.map((m, i) => i === li ? {...m, pending:false, done:true} : m));
-              setTimeout(() => {
-                setMsgs(p2 => [...p2, { role:"assistant", content:"Done — submitted and logged." }]);
-                if (onApproved) onApproved();
-              }, 400);
-            },
-            edit: () => setMsgs(p2 => [...p2, { role:"assistant", content:"Of course — what would you like to change?" }])
-          };
-        } else {
-          u[li] = { role:"assistant", content:out };
-        }
-        return u;
-      });
-    } catch {
-      setMsgs(p => { const u=[...p]; u[u.length-1] = { role:"assistant", content:"Connection error — please try again." }; return u; });
-    }
-    setBusy(false);
+      const raw=d.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"Research unavailable.";
+      const citations=parseCitations(raw);
+      const reply=stripCitations(raw);
+      setMessages(prev=>[...prev,{role:"assistant",content:reply,citations}]);
+    } catch { setMessages(prev=>[...prev,{role:"assistant",content:"Unable to connect. Please try again."}]); }
+    setSending(false);
   };
 
-  return { msgs, busy, routing, rStep, send };
-}
-
-// ─── UI PRIMITIVES ───────────────────────────────────────────────────────────
-const URGENCY = {
-  high:   { label:"Urgent", dot:"#ef4444", tc:"#dc2626" },
-  medium: { label:"Today",  dot:"#f59e0b", tc:"#b45309" },
-  low:    { label:"FYI",    dot:"#94a3b8", tc:"#64748b" }
-};
-
-function Pill({ label, color }) {
   return (
-    <span style={{
-      fontSize:9, fontWeight:700, letterSpacing:"0.06em",
-      padding:"2px 8px", borderRadius:99,
-      background:color+"22", color,
-      fontFamily:"monospace", textTransform:"uppercase", whiteSpace:"nowrap"
-    }}>{label}</span>
-  );
-}
+    <div style={{position:"absolute",inset:0,background:T.bg,overflowY:"auto",zIndex:300,display:"flex",flexDirection:"column"}}>
+      <style>{`@keyframes sUp{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
 
-function RoutingBar({ sources, accent, on, step }) {
-  if (!on) return null;
-  return (
-    <div style={{
-      display:"flex", alignItems:"center", gap:5, flexWrap:"wrap",
-      padding:"7px 12px", background:"#f8f8f8", borderRadius:8,
-      marginBottom:10, border:"1px solid #ebebeb"
-    }}>
-      <span style={{ fontSize:9, color:"#bbb", fontWeight:800, textTransform:"uppercase", letterSpacing:"0.08em" }}>
-        Querying
-      </span>
-      {sources.map((src, i) => (
-        <span key={src} style={{
-          fontSize:9.5, fontFamily:"monospace", fontWeight:700,
-          color: i < step ? accent : i === step ? accent+"99" : "#ccc",
-          transition:"color 0.3s",
-          display:"flex", alignItems:"center", gap:3
-        }}>
-          {i < step ? "✓" : i === step ? "▸" : "○"} {src}
-          {i < sources.length - 1 && <span style={{ color:"#ddd", margin:"0 2px" }}>→</span>}
-        </span>
-      ))}
-      {step >= sources.length && (
-        <span style={{ fontSize:9.5, color:accent, fontWeight:700, marginLeft:4 }}>
-          Synthesizing...
-        </span>
-      )}
-    </div>
-  );
-}
-
-function SkeletonTile() {
-  return (
-    <div style={{
-      background:"#fff", border:"1px solid #eee", borderRadius:14,
-      padding:"20px", display:"flex", flexDirection:"column", gap:10
-    }}>
-      {[80, 120, 60, 40].map((w, i) => (
-        <div key={i} style={{
-          height: i === 0 ? 10 : i === 1 ? 16 : 10,
-          width:`${w}%`, borderRadius:6,
-          background:"#f0f0f0",
-          animation:"shimmer 1.4s ease infinite"
-        }}/>
-      ))}
-    </div>
-  );
-}
-
-function ThinkingDots({ accent }) {
-  return (
-    <div style={{ display:"flex", gap:5, padding:"9px 13px", background:"#f0f0f0", borderRadius:16, width:"fit-content", marginTop:2 }}>
-      {[0,1,2].map(i => (
-        <div key={i} style={{
-          width:6, height:6, borderRadius:99, background:accent,
-          animation:`dp 1.2s ${i*0.2}s infinite`
-        }}/>
-      ))}
-    </div>
-  );
-}
-
-// ─── BUBBLE ───────────────────────────────────────────────────────────────────
-function Bubble({ msg, accent }) {
-  const isUser = msg.role === "user";
-  if (msg.isAction) {
-    return (
-      <div style={{ margin:"10px 0", padding:"14px 16px", borderRadius:12, border:`1.5px solid ${accent}55`, background:accent+"0a" }}>
-        <div style={{ fontSize:9.5, fontWeight:800, letterSpacing:"0.1em", color:accent, marginBottom:8, textTransform:"uppercase" }}>
-          Action Ready — Awaiting Your Approval
-        </div>
-        <div style={{
-          fontSize:11.5, color:"#1a1a1a", lineHeight:1.8, whiteSpace:"pre-wrap",
-          fontFamily:"'Courier New',monospace", background:"#fff",
-          padding:"10px 12px", borderRadius:8, border:"1px solid #eee",
-          maxHeight:260, overflowY:"auto"
-        }}>{msg.content}</div>
-        {msg.pending && (
-          <div style={{ display:"flex", gap:8, marginTop:10 }}>
-            <button onClick={msg.approve} style={{ padding:"7px 18px", borderRadius:8, border:"none", background:accent, color:"#fff", fontWeight:700, fontSize:12.5, cursor:"pointer" }}>
-              Approve & Submit
-            </button>
-            <button onClick={msg.edit} style={{ padding:"7px 18px", borderRadius:8, border:"1.5px solid #ddd", background:"#fff", color:"#666", fontWeight:600, fontSize:12.5, cursor:"pointer" }}>
-              Edit
-            </button>
-          </div>
-        )}
-        {msg.done && <div style={{ marginTop:8, fontSize:12, color:"#16a34a", fontWeight:700 }}>✓ Submitted and logged</div>}
-      </div>
-    );
-  }
-  return (
-    <div style={{ display:"flex", justifyContent:isUser?"flex-end":"flex-start", margin:"4px 0" }}>
-      <div style={{
-        maxWidth:"84%", padding:"9px 13px",
-        borderRadius: isUser ? "16px 16px 4px 16px" : "4px 16px 16px 16px",
-        background: isUser ? accent : "#f0f0f0",
-        color: isUser ? "#fff" : "#1a1a1a",
-        fontSize:13.5, lineHeight:1.65, whiteSpace:"pre-wrap"
-      }}>
-        {msg.content || <span style={{ opacity:0.3 }}>...</span>}
-      </div>
-    </div>
-  );
-}
-
-function ChatInput({ onSend, busy, accent, placeholder, autoFocus }) {
-  const [v, setV] = useState("");
-  const ref = useRef(null);
-  useEffect(() => { if (autoFocus && ref.current) setTimeout(() => ref.current?.focus(), 80); }, [autoFocus]);
-  const go = () => { if (!v.trim() || busy) return; onSend(v.trim()); setV(""); };
-  return (
-    <div style={{ display:"flex", gap:8, alignItems:"flex-end" }}>
-      <textarea
-        ref={ref} value={v}
-        onChange={e => setV(e.target.value)} rows={2}
-        onKeyDown={e => { if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); go(); } }}
-        placeholder={placeholder || "Ask a question or request an action..."}
-        style={{
-          flex:1, padding:"10px 13px", borderRadius:10,
-          border:`1.5px solid ${busy ? accent+"99" : "#e0e0e0"}`,
-          fontSize:13.5, resize:"none", outline:"none",
-          fontFamily:"inherit", lineHeight:1.5, background:"#fff"
-        }}/>
-      <button onClick={go} disabled={busy || !v.trim()} style={{
-        width:42, height:42, borderRadius:10, border:"none",
-        background: (!v.trim() || busy) ? "#e0e0e0" : accent,
-        color:"#fff", fontSize:17, cursor:busy?"wait":"pointer",
-        flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center"
-      }}>↑</button>
-    </div>
-  );
-}
-
-// ─── TILE CARD ────────────────────────────────────────────────────────────────
-function TileCard({ tile, persona, onOpen, fb, setFb }) {
-  const u = URGENCY[tile.urgency] || URGENCY.low;
-  const done = fb==="done", skip = fb==="skip", acted = done||skip;
-
-  return (
-    <div style={{
-      background: done?"#f0fdf4" : skip?"#fafafa" : "#fff",
-      border:`1px solid ${done?"#bbf7d0" : skip?"#e5e5e5" : tile.urgency==="high" ? persona.accent+"55" : "#e8e8e8"}`,
-      borderRadius:14, padding:"20px", position:"relative", overflow:"hidden",
-      transition:"all 0.25s", opacity:acted?0.7:1,
-      display:"flex", flexDirection:"column"
-    }}>
-      {tile.urgency==="high" && !acted && (
-        <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:persona.accent, borderRadius:"14px 14px 0 0" }}/>
-      )}
-      {done && (
-        <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:"#16a34a", borderRadius:"14px 14px 0 0" }}/>
-      )}
-
-      {/* Header row */}
-      <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10 }}>
-        <div style={{ width:6, height:6, borderRadius:99, background: done?"#16a34a" : skip?"#ccc" : u.dot, flexShrink:0 }}/>
-        <span style={{ fontSize:9.5, fontWeight:800, letterSpacing:"0.1em", color: done?"#16a34a" : skip?"#bbb" : u.tc, textTransform:"uppercase" }}>
-          {done?"Done" : skip?"Skipped" : u.label}
-        </span>
-        <span style={{ color:"#ddd", fontSize:10 }}>·</span>
-        <span style={{ fontSize:9.5, fontWeight:600, color:"#ccc", textTransform:"uppercase", letterSpacing:"0.06em" }}>{tile.label}</span>
-      </div>
-
-      <div style={{ fontSize:15, fontWeight:700, color:acted?"#aaa":"#111", marginBottom:6, lineHeight:1.3 }}>{tile.headline}</div>
-      <div style={{ fontSize:12.5, color:acted?"#ccc":"#666", lineHeight:1.6, marginBottom:14, flex:1 }}>{tile.blurb}</div>
-
-      {/* Source pills */}
-      <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:16 }}>
-        {(tile.sources||[]).map(s => <Pill key={s} label={s} color={acted?"#bbb":persona.accent}/>)}
-      </div>
-
-      {!acted ? (
-        <div style={{ display:"flex", gap:8 }}>
-          <button onClick={() => onOpen(tile)} style={{
-            flex:1, padding:"9px 14px", borderRadius:9, border:"none",
-            background:persona.accent, color:"#fff", fontWeight:700, fontSize:12.5, cursor:"pointer"
-          }}
-          onMouseEnter={e=>e.currentTarget.style.opacity="0.85"}
-          onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
-            Review & Act →
-          </button>
-          <button onClick={()=>setFb("done")} title="Mark done" style={{
-            width:36, height:36, borderRadius:9, border:"1.5px solid #bbf7d0",
-            background:"#f0fdf4", color:"#16a34a", fontSize:16, cursor:"pointer",
-            display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, flexShrink:0
-          }}>✓</button>
-          <button onClick={()=>setFb("skip")} title="Not helpful" style={{
-            width:36, height:36, borderRadius:9, border:"1.5px solid #e5e5e5",
-            background:"#fafafa", color:"#bbb", fontSize:18, cursor:"pointer",
-            display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, flexShrink:0
-          }}>×</button>
-        </div>
-      ) : (
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <span style={{ fontSize:11.5, color:done?"#16a34a":"#aaa", fontWeight:600 }}>
-            {done ? "✓ AI will reinforce this signal" : "✗ AI will recalibrate this tile"}
-          </span>
-          <button onClick={()=>setFb(null)} style={{ marginLeft:"auto", fontSize:11, color:"#bbb", background:"none", border:"none", cursor:"pointer", textDecoration:"underline" }}>
-            Undo
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── DRILL DOWN ───────────────────────────────────────────────────────────────
-function DrillDown({ tile, persona, onClose, onDone }) {
-  const { msgs, busy, routing, rStep, send } = useChat(
-    tile.drillPrompt || `You are an AI assistant for ${persona.name}, ${persona.role} at Wealthsimple. Sources: ${persona.mcps.join(", ")}. When producing drafts, label them "DRAFT — Awaiting your approval".`,
-    tile.sources || persona.mcps,
-    () => setTimeout(() => onDone(tile.id), 600),
-    persona.id
-  );
-  const ref = useRef(null);
-  useEffect(() => { if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [msgs, busy]);
-
-  const facts = tile.keyFacts || [];
-
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:300, display:"flex", flexDirection:"column", background:"#fff" }}>
       {/* Header */}
-      <div style={{ height:52, background:persona.color, display:"flex", alignItems:"center", padding:"0 24px", gap:14, flexShrink:0 }}>
-        <button onClick={onClose} style={{
-          background:"rgba(255,255,255,0.15)", border:"none", borderRadius:7,
-          padding:"6px 14px", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer"
-        }}>← Back</button>
-        <div style={{ width:1, height:20, background:"rgba(255,255,255,0.2)" }}/>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <div style={{ width:6, height:6, borderRadius:99, background:URGENCY[tile.urgency]?.dot||"#94a3b8" }}/>
-          <span style={{ fontSize:10, fontWeight:800, letterSpacing:"0.1em", color:"rgba(255,255,255,0.6)", textTransform:"uppercase" }}>{tile.label}</span>
-          <span style={{ color:"rgba(255,255,255,0.3)" }}>·</span>
-          <span style={{ fontSize:14, fontWeight:700, color:"#fff" }}>{tile.headline}</span>
+      <div style={{position:"sticky",top:0,background:T.card,borderBottom:`1px solid ${T.border}`,padding:"13px 16px",display:"flex",alignItems:"center",gap:10,zIndex:10,flexShrink:0}}>
+        <button onClick={onBack} style={{background:"none",border:"none",padding:"6px 4px",cursor:"pointer",fontSize:18,color:T.text,lineHeight:1}}>←</button>
+        <div style={{flex:1}}>
+          <div style={{fontSize:15,fontWeight:700,color:T.text,letterSpacing:"-0.01em"}}>{ticker}</div>
+          <div style={{fontSize:11,color:T.sub,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:200}}>{pos.name}</div>
         </div>
-        <div style={{ marginLeft:"auto", display:"flex", gap:5 }}>
-          {(tile.sources||[]).map(s => <Pill key={s} label={s} color="rgba(255,255,255,0.65)"/>)}
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {!isOwned && <span style={{fontSize:10,padding:"2px 7px",background:T.pill,borderRadius:12,color:T.sub,fontWeight:600}}>NOT IN PORTFOLIO</span>}
+          <button style={{background:"none",border:"none",padding:"4px",cursor:"pointer",fontSize:18,color:T.muted}}>☆</button>
         </div>
       </div>
 
-      <div style={{ display:"flex", flex:1, overflow:"hidden" }}>
-        {/* LEFT — Chat */}
-        <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", borderRight:"1px solid #eee" }}>
-          <div style={{ padding:"10px 18px", borderBottom:"1px solid #f5f5f5", display:"flex", alignItems:"center", gap:8 }}>
-            <div style={{ width:7, height:7, borderRadius:99, background:persona.accent, animation:"pulse 2s infinite" }}/>
-            <span style={{ fontSize:11, fontWeight:700, color:persona.color }}>Orchestrator Chat</span>
-            <span style={{ fontSize:10, color:"#ccc", marginLeft:"auto" }}>Tile context loaded · {persona.mcps.join(" · ")}</span>
-          </div>
+      {/* Scrollable content */}
+      <div style={{flex:1,overflowY:"auto",paddingBottom:90}}>
 
-          <div ref={ref} style={{ flex:1, overflowY:"auto", padding:"16px 20px" }}>
-            <RoutingBar sources={tile.sources||[]} accent={persona.accent} on={routing} step={rStep}/>
-
-            {msgs.length===0 && !routing && (
-              <div>
-                <p style={{ color:"#bbb", fontSize:13, fontStyle:"italic", marginBottom:14 }}>Brief loaded. What would you like to do?</p>
-                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                  {(tile.chips||[]).map(c => (
-                    <button key={c} onClick={() => send(c)} style={{
-                      padding:"10px 14px", borderRadius:9,
-                      border:`1.5px solid ${persona.accent}44`,
-                      background:persona.light, color:persona.color,
-                      fontSize:13, fontWeight:600, cursor:"pointer", textAlign:"left", transition:"background 0.15s"
-                    }}
-                    onMouseEnter={e=>e.currentTarget.style.background=persona.accent+"22"}
-                    onMouseLeave={e=>e.currentTarget.style.background=persona.light}>
-                      {c}
-                    </button>
-                  ))}
-                </div>
+        {/* Price hero */}
+        <div style={{padding:"16px 16px 0",background:T.card,borderBottom:`1px solid ${T.border2}`}}>
+          <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginBottom:2}}>
+            <div>
+              <div style={{fontSize:30,fontWeight:800,letterSpacing:"-0.03em",color:T.text}}>${pos.currentPrice.toFixed(2)}</div>
+              <div style={{fontSize:12,color:T.sub,marginTop:1}}>USD{isCrypto?"":" · "+pos.sector}</div>
+            </div>
+            {isOwned && (
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:13,fontWeight:700,color:up?T.green:T.red}}>{up?"+":""}{pct}% all time</div>
+                <div style={{fontSize:11,color:up?T.green:T.red,opacity:0.8}}>{up?"+":""}{gfmt(pnl)} unrealized</div>
+                <div style={{fontSize:10,color:T.muted}}>{pos.shares} shares · avg ${pos.avgCost.toFixed(2)}</div>
               </div>
             )}
-            {msgs.map((m, i) => <Bubble key={i} msg={m} accent={persona.accent}/>)}
-            {busy && !routing && <ThinkingDots accent={persona.accent}/>}
           </div>
-
-          <div style={{ padding:"12px 20px 18px", borderTop:"1px solid #f0f0f0", background:"#fff" }}>
-            <ChatInput onSend={send} busy={busy} accent={persona.accent} autoFocus/>
+          <div style={{paddingBottom:14}}>
+            <PriceChart ticker={ticker} color={chartColor}/>
           </div>
         </div>
 
-        {/* RIGHT — Intelligence Brief */}
-        <div style={{ width:360, overflowY:"auto", background:"#fafafa", flexShrink:0 }}>
-          <div style={{ padding:"18px 22px", borderBottom:"1px solid #eee" }}>
-            <div style={{ fontSize:10, fontWeight:800, letterSpacing:"0.1em", color:"#ccc", textTransform:"uppercase", marginBottom:6 }}>
-              Intelligence Brief
-            </div>
-            <div style={{ fontSize:13, color:"#777", lineHeight:1.6 }}>{tile.blurb}</div>
+        {/* Stats row */}
+        {isOwned && (
+          <div style={{padding:"12px 16px",background:T.card,borderBottom:`1px solid ${T.border2}`,display:"flex",gap:0}}>
+            {[
+              {lbl:"Market Value",val:fmtL(pos.currentPrice*pos.shares)},
+              {lbl:"Book Value",val:fmtL(pos.avgCost*pos.shares)},
+              {lbl:"Total Return",val:`${up?"+":""}${pct}%`,col:up?T.green:T.red},
+            ].map((item,i)=>(
+              <div key={i} style={{flex:1,borderRight:i<2?`1px solid ${T.border2}`:"none",paddingLeft:i>0?12:0}}>
+                <div style={{fontSize:10,color:T.muted,marginBottom:2}}>{item.lbl}</div>
+                <div style={{fontSize:13,fontWeight:600,color:item.col||T.text}}>{item.val}</div>
+              </div>
+            ))}
           </div>
+        )}
 
-          {/* Key Facts */}
-          {facts.length > 0 && (
-            <div style={{ padding:"16px 22px", borderBottom:"1px solid #eee" }}>
-              <div style={{ fontSize:10, fontWeight:800, color:"#ccc", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Key Facts</div>
-              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                {facts.map((f, i) => (
-                  <div key={i} style={{ background:"#fff", borderRadius:9, padding:"9px 12px", border:"1px solid #eee" }}>
-                    <div style={{ fontSize:9.5, fontWeight:700, color:"#bbb", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:3 }}>{f.label}</div>
-                    <div style={{ fontSize:12.5, color:"#333", lineHeight:1.5 }}>{f.value}</div>
+        {/* News */}
+        {news.filter(Boolean).length>0 && (
+          <div style={{margin:"10px 16px 0",padding:"12px 14px",background:T.card,border:`1px solid ${T.border}`,borderRadius:10}}>
+            <div style={{fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>Wealthsimple News</div>
+            {news.filter(Boolean).map((h,i)=>(
+              <div key={i} style={{fontSize:12,color:T.sub,lineHeight:1.6,paddingLeft:10,borderLeft:`2px solid ${T.border}`,marginBottom:i<news.length-1?7:0}}>{h}</div>
+            ))}
+          </div>
+        )}
+
+        {/* Crypto coming soon */}
+        {isCrypto && (
+          <div style={{margin:"10px 16px 0",padding:"18px 16px",background:T.card,border:`1px solid ${T.border}`,borderRadius:10,textAlign:"center"}}>
+            <div style={{fontSize:20,marginBottom:7}}>🔬</div>
+            <div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:5}}>Crypto Research Coming Soon</div>
+            <div style={{fontSize:12,color:T.sub,lineHeight:1.6}}>Analyst coverage, on-chain metrics, and staking yield data are in development for V2 — including Ask Simple Research for crypto positions. Tax context still applies.</div>
+          </div>
+        )}
+
+        {/* ETF coming soon */}
+        {isETF && (
+          <div style={{margin:"10px 16px 0",padding:"18px 16px",background:T.card,border:`1px solid ${T.border}`,borderRadius:10,textAlign:"center"}}>
+            <div style={{fontSize:20,marginBottom:7}}>📊</div>
+            <div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:5}}>ETF Research Coming Soon</div>
+            <div style={{fontSize:12,color:T.sub,lineHeight:1.6}}>Expense ratio, benchmark tracking, and holdings breakdown are in development for V2 — including Ask Simple Research for ETF positions. Tax context still applies.</div>
+          </div>
+        )}
+
+        {/* Research panel */}
+        {!isCrypto && !isETF && (
+          <div style={{margin:"10px 16px 0",background:T.card,border:`1px solid ${T.border}`,borderRadius:10,overflow:"hidden"}}>
+            {/* Coverage badge */}
+            {cs && (
+              <div style={{padding:"8px 14px",background:cs.bg,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:cs.dot}}/>
+                  <span style={{fontSize:11,fontWeight:700,color:cs.tx}}>{cs.lbl}</span>
+                </div>
+                {cov&&<span style={{fontSize:11,color:cs.tx,opacity:0.7}}>{cov.n} analysts · {cov.d}d ago</span>}
+              </div>
+            )}
+            <div style={{padding:"13px 14px"}}>
+              {loadingRes ? (
+                <>
+                  <div style={{fontSize:10,color:T.muted,marginBottom:10}}>Fetching analyst data...</div>
+                  {[70,50,85].map((w,i)=>(
+                    <div key={i} style={{height:10,borderRadius:5,background:T.border,width:`${w}%`,marginBottom:8,animation:"pulse 1.3s ease infinite",animationDelay:`${i*0.15}s`}}/>
+                  ))}
+                  <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
+                </>
+              ) : (
+                // liveRes null after load = use mock RESEARCH data as fallback
+                (()=>{
+                  const r = liveRes ? parseResearch(liveRes) : res ? {
+                    consensus: `${res.rating} · ${res.target} · ${COV[ticker]?.n||"—"} analysts`,
+                    earnings:  res.earnings,
+                    bull: res.bull ? `${res.bull.firm ? res.bull.firm+": " : ""}${res.bull.text}` : null,
+                    bear: res.bear ? `${res.bear.firm ? res.bear.firm+": " : ""}${res.bear.text}` : null,
+                  } : null;
+                  // Build citations from mock data when liveRes unavailable
+                  const cites = liveRes ? parseCitations(liveRes) : res ? [
+                    ...(res.bull?.firm ? [{source:res.bull.firm, claim:"Bull case", date:"Cached"}] : []),
+                    ...(res.bear?.firm ? [{source:res.bear.firm, claim:"Bear case", date:"Cached"}] : []),
+                  ] : [];
+                  const isLive = !!liveRes;
+                  if(!r) return <div style={{fontSize:13,color:T.sub,textAlign:"center",padding:"10px 0"}}>No analyst data available for {ticker}.</div>;
+                  return (
+                    <>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                        <span style={{fontSize:10,fontWeight:700,color:T.text}}>{r.consensus||"Analyst Consensus"}</span>
+                        {isLive
+                          ? <div style={{fontSize:9,padding:"2px 7px",background:T.greenBg,borderRadius:8,color:T.greenTx,fontWeight:600,border:`1px solid #BBF7D0`,display:"flex",alignItems:"center",gap:4}}><div style={{width:5,height:5,borderRadius:"50%",background:T.green}}/>Live</div>
+                          : <div style={{fontSize:9,padding:"2px 7px",background:T.pill,borderRadius:8,color:T.muted,fontWeight:600,border:`1px solid ${T.border}`}}>Cached</div>
+                        }
+                      </div>
+                      {r.earnings&&<div style={{fontSize:11,color:T.sub,marginBottom:10,lineHeight:1.5}}>{r.earnings}</div>}
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                        <div style={{padding:"10px",background:T.greenBg,borderRadius:10,border:`1px solid #BBF7D0`}}>
+                          <div style={{fontSize:9,fontWeight:700,color:T.greenTx,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>▲ Bull</div>
+                          <div style={{fontSize:11,color:T.text,lineHeight:1.5}}>{r.bull||"—"}</div>
+                        </div>
+                        <div style={{padding:"10px",background:T.redBg,borderRadius:10,border:`1px solid #FECACA`}}>
+                          <div style={{fontSize:9,fontWeight:700,color:T.redTx,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>▼ Bear</div>
+                          <div style={{fontSize:11,color:T.text,lineHeight:1.5}}>{r.bear||"—"}</div>
+                        </div>
+                      </div>
+                      {cites.length>0&&(
+                        <div style={{borderTop:`1px solid ${T.border2}`,paddingTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
+                          {cites.map((c,i)=>(
+                            <span key={i} style={{fontSize:9,padding:"2px 7px",background:T.pill,borderRadius:10,color:T.sub,border:`1px solid ${T.border}`}}>{c.source} · {c.date}</span>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
+              )}
+
+              {/* ── Inline chat button — right below bull/bear ── */}
+              {(res || (!loadingRes && !isCrypto && !isETF)) && (
+                <div style={{marginTop:14,paddingTop:12,borderTop:`1px solid ${T.border2}`}}>
+                  <button onClick={()=>setChatOpen(o=>!o)}
+                    style={{width:"100%",padding:"11px 14px",background:chatOpen?T.ws:T.greenBg,border:`1.5px solid ${chatOpen?T.ws:T.green+"44"}`,borderRadius:10,color:chatOpen?T.card:T.greenTx,fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:9,transition:"all 0.18s"}}>
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                      <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H6l-4 2V3z" stroke={chatOpen?T.card:T.greenTx} strokeWidth="1.5" fill={chatOpen?"rgba(255,255,255,0.25)":"none"}/>
+                    </svg>
+                    <span style={{flex:1,textAlign:"left"}}>Ask Simple Research about {ticker}</span>
+                    <span style={{fontSize:14,lineHeight:1,opacity:0.7}}>{chatOpen?"↓":"↑"}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Timing */}
+        <div style={{margin:"10px 16px 0"}}><TimingBadge/></div>
+
+        {/* Simulate Sell — now below timing, after chat */}
+        {isOwned && (
+          <div style={{margin:"10px 16px 0"}}>
+            <button onClick={()=>{if(!showTax){setTaxResult(calcTax(pos,effectiveAcctType));}setShowTax(o=>!o);}}
+              style={{width:"100%",padding:"13px",background:showTax?T.pill:T.bg,border:`1px solid ${T.border}`,borderRadius:10,color:showTax?T.sub:T.text,fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"all 0.2s"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:15}}>💸</span>
+                <span>Simulate Sell — See Tax Impact</span>
+              </div>
+              <span style={{fontSize:13,color:T.muted}}>{showTax?"▲":"▼"}</span>
+            </button>
+            {showTax&&<TaxPanel result={taxResult}/>}
+          </div>
+        )}
+
+        {/* Compliance notice — prominent */}
+        <div style={{margin:"10px 16px 0",padding:"12px 14px",background:T.compBg,border:`1.5px solid ${T.compBr}`,borderRadius:10,display:"flex",alignItems:"flex-start",gap:8}}>
+          <span style={{fontSize:14,flexShrink:0}}>⚠️</span>
+          <div>
+            <div style={{fontSize:10,fontWeight:700,color:T.compTx,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:2}}>Not financial or investment advice</div>
+            <div style={{fontSize:11,color:T.compTx,lineHeight:1.55,opacity:0.85}}>Analyst data is sourced from third parties and provided for informational purposes only. It does not constitute financial, investment, or tax advice. Consult a qualified advisor before acting.</div>
+          </div>
+        </div>
+
+        <div style={{height:96}}/>
+      </div>
+
+      {/* Floating chat modal — slides up from bottom above Trade button */}
+      {chatOpen && (
+        <div style={{position:"absolute",bottom:90,left:0,right:0,zIndex:30,padding:"0 0",animation:"sUp 0.22s ease"}}>
+          <div style={{margin:"0 12px",background:T.card,border:`1px solid ${T.border}`,borderRadius:16,overflow:"hidden",boxShadow:"0 -4px 24px rgba(0,0,0,0.12)"}}>
+            {/* Chat header */}
+            <div style={{padding:"12px 14px 10px",borderBottom:`1px solid ${T.border2}`,display:"flex",alignItems:"center",justifyContent:"space-between",background:T.card}}>
+              <div style={{display:"flex",alignItems:"center",gap:7}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:T.ws}}/>
+                <span style={{fontSize:13,fontWeight:700,color:T.text}}>Simple Research · {ticker}</span>
+              </div>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <button onClick={()=>setChatOpen(false)}
+                  style={{background:"none",border:"none",fontSize:18,color:T.muted,cursor:"pointer",lineHeight:1,padding:"2px 4px"}}>−</button>
+                <button onClick={()=>setChatOpen(false)}
+                  style={{background:"none",border:"none",fontSize:16,color:T.muted,cursor:"pointer",lineHeight:1,padding:"2px 4px"}}>✕</button>
+              </div>
+            </div>
+            {/* Messages */}
+            <div style={{height:220,overflowY:"auto",padding:"10px 12px",display:"flex",flexDirection:"column",gap:8,background:T.bg}}>
+              {messages.length===0&&(
+                <div style={{fontSize:12,color:T.muted,textAlign:"center",padding:"20px 0",lineHeight:1.7}}>
+                  Ask about analyst views, tax impact, or portfolio context.<br/>
+                  <span style={{fontSize:11,color:T.faint}}>Context only — you make the call.</span>
+                </div>
+              )}
+              {messages.map((m,i)=>(
+                <div key={i} style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"92%",display:"flex",flexDirection:"column",gap:4}}>
+                  <div style={{padding:"8px 11px",borderRadius:m.role==="user"?"12px 12px 2px 12px":"12px 12px 12px 2px",background:m.role==="user"?T.ws:T.card,border:m.role==="assistant"?`1px solid ${T.border2}`:"none",color:m.role==="user"?T.card:T.text,fontSize:12,lineHeight:1.65,whiteSpace:"pre-wrap"}}>
+                    {m.content}
+                    {m.role==="assistant"&&m.content.includes("decision is yours")&&(
+                      <button style={{display:"block",marginTop:7,padding:"5px 10px",background:T.greenBg,border:`1px solid #BBF7D0`,borderRadius:6,color:T.greenTx,fontSize:11,cursor:"pointer",fontWeight:600}}>Talk to a Wealthsimple advisor →</button>
+                    )}
+                  </div>
+                  {/* Citation chips — only on assistant messages with citations */}
+                  {m.role==="assistant"&&m.citations&&m.citations.length>0&&(
+                    <div style={{display:"flex",flexDirection:"column",gap:3,paddingLeft:2}}>
+                      <div style={{fontSize:9,fontWeight:700,color:T.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:1}}>Sources</div>
+                      {m.citations.map((c,ci)=>(
+                        <div key={ci} style={{display:"flex",alignItems:"flex-start",gap:5,padding:"5px 8px",background:T.card,border:`1px solid ${T.border}`,borderRadius:7,borderLeft:`2px solid ${T.ws}`}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:10,fontWeight:600,color:T.text,marginBottom:1}}>{c.source}</div>
+                            <div style={{fontSize:10,color:T.sub,lineHeight:1.4}}>{c.claim}</div>
+                            <div style={{fontSize:9,color:T.muted,marginTop:2}}>{c.date}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {sending&&<div style={{alignSelf:"flex-start",padding:"8px 12px",background:T.card,border:`1px solid ${T.border2}`,borderRadius:"12px 12px 12px 2px",fontSize:12,color:T.sub}}>Researching...</div>}
+              <div ref={endRef}/>
+            </div>
+            {/* Input */}
+            <div style={{borderTop:`1px solid ${T.border2}`,padding:"9px 11px",display:"flex",gap:7,background:T.card}}>
+              {hasReachedDailyTickerCap(ticker) && messages.length === 0 && (
+                <div style={{padding:"8px 12px",background:"#FFF8E7",border:"1px solid #FDE68A",borderRadius:8,fontSize:11,color:"#92400E",marginBottom:6,textAlign:"center"}}>
+                  Daily limit reached (5 tickers/day). Resets at midnight.
+                </div>
+              )}
+              {messages.filter(m=>m.role==="user").length >= MAX_CHAT && (
+                <div style={{padding:"8px 12px",background:"#FFF8E7",border:"1px solid #FDE68A",borderRadius:8,fontSize:11,color:"#92400E",marginBottom:6,textAlign:"center"}}>
+                  Research cap reached (5 messages per ticker).
+                </div>
+              )}
+              <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Ask about analyst views or tax..." disabled={messages.filter(m=>m.role==="user").length >= MAX_CHAT || (hasReachedDailyTickerCap(ticker) && messages.length === 0)}
+                style={{flex:1,background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,padding:"8px 11px",color:T.text,fontSize:16,outline:"none",fontFamily:"inherit"}}
+                onFocus={e=>e.target.style.borderColor=T.ws} onBlur={e=>e.target.style.borderColor=T.border}/>
+              <button onClick={sendChat} disabled={sending||!input.trim()}
+                style={{padding:"8px 14px",background:input.trim()?T.ws:T.border,border:"none",borderRadius:8,color:input.trim()?T.card:T.sub,cursor:input.trim()?"pointer":"default",fontSize:15,fontWeight:700}}>↑</button>
+            </div>
+            {/* Compliance footer */}
+            <div style={{padding:"7px 12px",borderTop:`1px solid ${T.border2}`,background:T.compBg}}>
+              <div style={{fontSize:10,fontWeight:600,color:T.compTx}}>⚠️ Not financial advice — informational only. Consult a qualified advisor.</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fixed Trade button */}
+      <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"12px 16px 20px",background:T.card,borderTop:`1px solid ${T.border}`,zIndex:20}}>
+        <button onClick={()=>setShowTrade(true)}
+          style={{width:"100%",padding:"14px",background:T.text,border:"none",borderRadius:14,color:T.card,fontSize:15,fontWeight:700,cursor:"pointer",letterSpacing:"-0.01em"}}>
+          Trade
+        </button>
+      </div>
+
+      {/* Trade modal stub */}
+      {showTrade && (
+        <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.4)",zIndex:400,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setShowTrade(false)}>
+          <div style={{background:T.card,borderRadius:"16px 16px 0 0",padding:"20px 20px 40px",width:"100%",maxWidth:430,animation:"sUp 0.22s ease"}} onClick={e=>e.stopPropagation()}>
+            <div style={{width:36,height:4,background:T.border,borderRadius:2,margin:"0 auto 16px"}}/>
+            <div style={{fontSize:16,fontWeight:700,color:T.text,marginBottom:4}}>Trade {ticker}</div>
+            <div style={{fontSize:13,color:T.sub,marginBottom:20,lineHeight:1.6}}>Trading is handled by Wealthsimple's execution layer. Simple Research provides research context only and does not execute trades.</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <button style={{padding:"13px",background:T.greenBg,border:`1px solid #BBF7D0`,borderRadius:10,color:T.greenTx,fontSize:14,fontWeight:700,cursor:"pointer"}}>Buy</button>
+              <button style={{padding:"13px",background:T.redBg,border:`1px solid #FECACA`,borderRadius:10,color:T.redTx,fontSize:14,fontWeight:700,cursor:"pointer"}}>Sell</button>
+            </div>
+            <div style={{marginTop:10,fontSize:11,color:T.muted,textAlign:"center"}}>Demo only — no trades are executed</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── INVEST SCREEN ───────────────────────────
+function InvestCatHeader({ icon, label, count, arr }) {
+  const val  = arr.reduce((s,p)=>s+p.currentPrice*p.shares,0);
+  const cost = arr.reduce((s,p)=>s+p.avgCost*p.shares,0);
+  const up   = val >= cost;
+  const pct  = cost>0 ? ((val-cost)/cost*100).toFixed(1) : "0.0";
+  return (
+    <div style={{padding:"11px 16px 9px",background:T.bg,borderBottom:`1px solid ${T.border2}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+      <div style={{display:"flex",alignItems:"center",gap:7}}>
+        <span style={{fontSize:14}}>{icon}</span>
+        <span style={{fontSize:12,fontWeight:700,color:T.text}}>{label}</span>
+        <span style={{fontSize:10,color:T.muted}}>{count} positions</span>
+      </div>
+      <div style={{textAlign:"right"}}>
+        <div style={{fontSize:12,fontWeight:700,color:T.text}}>{fmtL(val)}</div>
+        <div style={{fontSize:10,fontWeight:600,color:up?T.green:T.red}}>{up?"+":""}{pct}%</div>
+      </div>
+    </div>
+  );
+}
+
+function InvestPosRow({ p, acctBadge, onSelectTicker }) {
+  const pnl = (p.currentPrice - p.avgCost) * p.shares;
+  const pct = gp(p.currentPrice, p.avgCost);
+  const up  = isPos(p.currentPrice, p.avgCost);
+  const cov = COV[p.ticker];
+  const cs  = cov ? covSt(cov.level) : null;
+  return (
+    <div onClick={()=>onSelectTicker(p.ticker)}
+      style={{padding:"12px 16px",background:T.card,borderBottom:`1px solid ${T.border2}`,display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+      <div style={{width:38,height:38,borderRadius:10,background:T.pill,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+        <span style={{fontSize:12,fontWeight:800,color:T.text}}>{p.ticker[0]}</span>
+      </div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+          <span style={{fontSize:13,fontWeight:700,color:T.text}}>{p.ticker}</span>
+          {cs && <div style={{width:5,height:5,borderRadius:"50%",background:cs.dot}}/>}
+          {acctBadge && (
+            <span style={{fontSize:9,padding:"1px 5px",borderRadius:5,fontWeight:600,
+              background:acctBadge==="TFSA"?T.greenBg:T.blueBg,
+              color:acctBadge==="TFSA"?T.greenTx:T.blueTx,
+              border:`1px solid ${acctBadge==="TFSA"?"#BBF7D0":"#BFDBFE"}`}}>
+              {acctBadge}
+            </span>
+          )}
+        </div>
+        <div style={{fontSize:11,color:T.sub,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
+        <div style={{fontSize:10,color:T.muted,marginTop:1}}>{p.shares} shares · avg ${p.avgCost.toFixed(2)}</div>
+      </div>
+      <div style={{textAlign:"right",flexShrink:0}}>
+        <div style={{fontSize:13,fontWeight:700,color:T.text}}>${p.currentPrice.toFixed(2)}</div>
+        <div style={{fontSize:11,color:up?T.green:T.red,fontWeight:600}}>{up?"+":""}{pct}%</div>
+        <div style={{fontSize:10,color:up?T.green:T.red,opacity:0.8}}>{up?"+":""}{gfmt(pnl)}</div>
+      </div>
+    </div>
+  );
+}
+
+function InvestScreen({ onBack, onSelectTicker, tabs, activeTab, onTabChange }) {
+  const tfsaPos   = ACCOUNTS.tfsa.positions   || [];
+  const nonregPos = ACCOUNTS.nonreg.positions || [];
+  const cryptoPos = ACCOUNTS.crypto.positions || [];
+
+  // Tag each position with its account label for the badge
+  const tfsaTagged   = tfsaPos.map(p=>({...p, _acct:"TFSA"}));
+  const nonregTagged = nonregPos.map(p=>({...p, _acct:"Non-Reg"}));
+  const allStockPos  = [...tfsaTagged, ...nonregTagged];
+
+  const stocks = allStockPos.filter(p=>p.assetType==="EQUITY").sort((a,b)=>(b.currentPrice*b.shares)-(a.currentPrice*a.shares));
+  const funds  = allStockPos.filter(p=>p.assetType==="ETF").sort((a,b)=>(b.currentPrice*b.shares)-(a.currentPrice*a.shares));
+
+  const allPos    = [...allStockPos, ...cryptoPos];
+  const totalVal  = allPos.reduce((s,p)=>s+p.currentPrice*p.shares, 0);
+  const totalCost = allPos.reduce((s,p)=>s+p.avgCost*p.shares, 0);
+  const totalPnl  = totalVal - totalCost;
+  const totalUp   = totalPnl >= 0;
+  const totalPct  = totalCost > 0 ? ((totalPnl/totalCost)*100).toFixed(1) : "0.0";
+
+  return (
+    <div style={{position:"absolute",inset:0,background:T.bg,zIndex:200,display:"flex",flexDirection:"column"}}>
+      {/* Header */}
+      <div style={{position:"sticky",top:0,background:T.card,borderBottom:`1px solid ${T.border}`,padding:"13px 16px",display:"flex",alignItems:"center",gap:10,zIndex:10,flexShrink:0}}>
+        <button onClick={onBack} style={{background:"none",border:"none",padding:"6px 4px",cursor:"pointer",fontSize:18,color:T.text,lineHeight:1}}>←</button>
+        <div style={{flex:1}}>
+          <div style={{fontSize:15,fontWeight:700,color:T.text}}>Invest</div>
+          <div style={{fontSize:11,color:T.sub}}>{stocks.length+funds.length+cryptoPos.length} positions total</div>
+        </div>
+      </div>
+
+      {/* Summary */}
+      <div style={{padding:"16px",background:T.card,borderBottom:`1px solid ${T.border2}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div>
+          <div style={{fontSize:11,color:T.sub,marginBottom:3}}>Total value</div>
+          <div style={{fontSize:26,fontWeight:800,letterSpacing:"-0.02em",color:T.text}}>{fmtL(totalVal)}</div>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:13,fontWeight:700,color:totalUp?T.green:T.red}}>{totalUp?"+":""}{fmtL(totalPnl)}</div>
+          <div style={{fontSize:11,color:totalUp?T.green:T.red,opacity:0.8}}>{totalUp?"+":""}{totalPct}% all time</div>
+        </div>
+      </div>
+
+      {/* Categories */}
+      <div style={{flex:1,overflowY:"auto",paddingBottom:90}}>
+        {stocks.length>0 && <>
+          <InvestCatHeader icon="📈" label="Stocks" count={stocks.length} arr={stocks}/>
+          {stocks.map(p=><InvestPosRow key={p.ticker} p={p} acctBadge={p._acct} onSelectTicker={onSelectTicker}/>)}
+        </>}
+        {funds.length>0 && <>
+          <div style={{height:10}}/>
+          <InvestCatHeader icon="🗂" label="ETFs" count={funds.length} arr={funds}/>
+          {funds.map(p=><InvestPosRow key={p.ticker} p={p} acctBadge={p._acct} onSelectTicker={onSelectTicker}/>)}
+        </>}
+        {cryptoPos.length>0 && <>
+          <div style={{height:10}}/>
+          <InvestCatHeader icon="₿" label="Crypto" count={cryptoPos.length} arr={cryptoPos}/>
+          {cryptoPos.map(p=><InvestPosRow key={p.ticker} p={p} acctBadge={null} onSelectTicker={onSelectTicker}/>)}
+        </>}
+      </div>
+
+      {/* Bottom tabs */}
+      <div style={{position:"absolute",bottom:0,left:0,right:0,background:T.card,borderTop:`1px solid ${T.border}`,zIndex:20,display:"flex"}}>
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>{onBack();onTabChange(t.id);}}
+            style={{flex:1,padding:"10px 4px 14px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+            <span style={{fontSize:18,lineHeight:1}}>{t.icon}</span>
+            <span style={{fontSize:9,fontWeight:activeTab===t.id?700:500,color:activeTab===t.id?T.ws:T.muted}}>{t.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── STOCKS & FUNDS SCREEN ───────────────────
+function StocksScreen({ onBack, onSelectTicker, onSelectAccount, tabs, activeTab, onTabChange }) {
+  // Flatten all positions from TFSA + Non-Reg, tagging each with its account
+  const allPos = [ACCOUNTS.tfsa, ACCOUNTS.nonreg].flatMap(a =>
+    a.positions.map(p => ({ ...p, acctId: a.id, acctLabel: a.label, acctType: a.type }))
+  );
+
+  // Split into Stocks (EQUITY) and Funds (ETF), sorted by market value desc
+  const stocks = allPos.filter(p=>p.assetType==="EQUITY").sort((a,b)=>(b.currentPrice*b.shares)-(a.currentPrice*a.shares));
+  const funds  = allPos.filter(p=>p.assetType==="ETF").sort((a,b)=>(b.currentPrice*b.shares)-(a.currentPrice*a.shares));
+
+  const totalVal  = allPos.reduce((s,p)=>s+p.currentPrice*p.shares,0);
+  const totalCost = allPos.reduce((s,p)=>s+p.avgCost*p.shares,0);
+  const totalPnl  = totalVal - totalCost;
+  const totalUp   = totalPnl >= 0;
+  const totalPct  = ((totalPnl/totalCost)*100).toFixed(1);
+
+  const acctBadge = (acctType) => (
+    <span style={{fontSize:9,padding:"1px 5px",borderRadius:6,fontWeight:600,
+      background: acctType==="TFSA" ? T.greenBg : T.blueBg,
+      color:      acctType==="TFSA" ? T.greenTx : T.blueTx,
+      border:`1px solid ${acctType==="TFSA"?"#BBF7D0":"#BFDBFE"}`}}>
+      {acctType==="TFSA"?"TFSA":"Non-Reg"}
+    </span>
+  );
+
+  const PositionRow = ({p}) => {
+    const pnl=(p.currentPrice-p.avgCost)*p.shares;
+    const pct=gp(p.currentPrice,p.avgCost);
+    const up=isPos(p.currentPrice,p.avgCost);
+    const cov=COV[p.ticker];
+    const cs=cov?covSt(cov.level):null;
+    return (
+      <div onClick={()=>onSelectTicker(p.ticker)}
+        style={{padding:"13px 16px",background:T.card,borderBottom:`1px solid ${T.border2}`,display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+        <div style={{width:40,height:40,borderRadius:10,background:T.pill,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <span style={{fontSize:12,fontWeight:800,color:T.text}}>{p.ticker[0]}</span>
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+            <span style={{fontSize:13,fontWeight:700,color:T.text}}>{p.ticker}</span>
+            {cs&&<div style={{width:6,height:6,borderRadius:"50%",background:cs.dot,flexShrink:0}}/>}
+            {acctBadge(p.acctType)}
+          </div>
+          <div style={{fontSize:11,color:T.sub,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
+          <div style={{fontSize:10,color:T.muted,marginTop:1}}>{p.shares} shares · avg ${p.avgCost.toFixed(2)}</div>
+        </div>
+        <div style={{textAlign:"right",flexShrink:0}}>
+          <div style={{fontSize:13,fontWeight:700,color:T.text}}>${p.currentPrice.toFixed(2)}</div>
+          <div style={{fontSize:11,color:up?T.green:T.red,fontWeight:600}}>{up?"+":""}{pct}%</div>
+          <div style={{fontSize:10,color:up?T.green:T.red,opacity:0.8}}>{up?"+":""}{gfmt(pnl)}</div>
+        </div>
+      </div>
+    );
+  };
+
+  const SectionHeader = ({label, count, val}) => (
+    <div style={{padding:"10px 16px 8px",background:T.bg,borderBottom:`1px solid ${T.border2}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+      <div style={{display:"flex",alignItems:"center",gap:7}}>
+        <span style={{fontSize:11,fontWeight:700,color:T.text,textTransform:"uppercase",letterSpacing:"0.06em"}}>{label}</span>
+        <span style={{fontSize:10,color:T.muted,fontWeight:500}}>{count} positions</span>
+      </div>
+      <span style={{fontSize:12,fontWeight:600,color:T.sub}}>{fmtL(val)}</span>
+    </div>
+  );
+
+  const stocksVal = stocks.reduce((s,p)=>s+p.currentPrice*p.shares,0);
+  const fundsVal  = funds.reduce((s,p)=>s+p.currentPrice*p.shares,0);
+
+  return (
+    <div style={{position:"absolute",inset:0,background:T.bg,zIndex:200,display:"flex",flexDirection:"column"}}>
+      {/* Header */}
+      <div style={{position:"sticky",top:0,background:T.card,borderBottom:`1px solid ${T.border}`,padding:"13px 16px",display:"flex",alignItems:"center",gap:10,zIndex:10,flexShrink:0}}>
+        <button onClick={onBack} style={{background:"none",border:"none",padding:"6px 4px",cursor:"pointer",fontSize:18,color:T.text,lineHeight:1}}>←</button>
+        <div style={{flex:1}}>
+          <div style={{fontSize:15,fontWeight:700,color:T.text}}>Stocks & Funds</div>
+          <div style={{fontSize:11,color:T.sub}}>{allPos.length} positions across TFSA & Non-Reg</div>
+        </div>
+      </div>
+
+      {/* Summary bar */}
+      <div style={{padding:"16px",background:T.card,borderBottom:`1px solid ${T.border2}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div>
+          <div style={{fontSize:11,color:T.sub,marginBottom:3}}>Total value</div>
+          <div style={{fontSize:26,fontWeight:800,letterSpacing:"-0.02em",color:T.text}}>{fmtL(totalVal)}</div>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:13,fontWeight:700,color:totalUp?T.green:T.red}}>{totalUp?"+":""}{fmtL(totalPnl)}</div>
+          <div style={{fontSize:11,color:totalUp?T.green:T.red,opacity:0.8}}>{totalUp?"+":""}{totalPct}% all time</div>
+        </div>
+      </div>
+
+      {/* Asset type sections */}
+      <div style={{flex:1,overflowY:"auto",paddingBottom:90}}>
+        {stocks.length>0&&<>
+          <SectionHeader label="Stocks" count={stocks.length} val={stocksVal}/>
+          {stocks.map(p=><PositionRow key={p.ticker} p={p}/>)}
+        </>}
+        {funds.length>0&&<>
+          <div style={{height:10}}/>
+          <SectionHeader label="ETFs" count={funds.length} val={fundsVal}/>
+          {funds.map(p=><PositionRow key={p.ticker} p={p}/>)}
+        </>}
+      </div>
+
+      {/* Bottom tabs */}
+      <div style={{position:"absolute",bottom:0,left:0,right:0,background:T.card,borderTop:`1px solid ${T.border}`,zIndex:20,display:"flex"}}>
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>{onBack();onTabChange(t.id);}}
+            style={{flex:1,padding:"10px 4px 14px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+            <span style={{fontSize:18,lineHeight:1}}>{t.icon}</span>
+            <span style={{fontSize:9,fontWeight:activeTab===t.id?700:500,color:activeTab===t.id?T.ws:T.muted}}>{t.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── ALL ACCOUNTS SCREEN ────────────────────
+function AllAccountsScreen({ onBack, onSelectTicker, onSelectAccount, tabs, activeTab, onTabChange }) {
+  const allPositions = Object.values(ACCOUNTS).flatMap(a =>
+    a.positions.map(p => ({ ...p, acctLabel: a.label, acctType: a.type, acctId: a.id }))
+  );
+  const totalVal  = Object.values(ACCOUNTS).reduce((s,a)=>s+a.totalValue,0);
+  const totalCost = Object.values(ACCOUNTS).reduce((s,a)=>s+a.totalCost,0);
+  const up = totalVal >= totalCost;
+  const pnl = totalVal - totalCost;
+  const pct = gp(totalVal, totalCost);
+
+  // Group by account for section headers
+  const grouped = Object.entries(ACCOUNTS).map(([id, acct]) => ({
+    id, acct,
+    positions: acct.positions.map(p=>({...p, acctId:id, acctType:acct.type}))
+  }));
+
+  return (
+    <div style={{position:"absolute",inset:0,background:T.bg,zIndex:200,animation:"sUp 0.22s ease",display:"flex",flexDirection:"column"}}>
+      {/* Header */}
+      <div style={{background:T.card,borderBottom:`1px solid ${T.border}`,padding:"13px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+        <button onClick={onBack} style={{background:"none",border:"none",padding:"6px 4px",cursor:"pointer",fontSize:18,color:T.text,lineHeight:1}}>←</button>
+        <div style={{flex:1}}>
+          <div style={{fontSize:15,fontWeight:700,color:T.text}}>All Holdings</div>
+          <div style={{fontSize:11,color:T.sub}}>{allPositions.length} positions across 3 accounts</div>
+        </div>
+      </div>
+
+      {/* Summary bar */}
+      <div style={{padding:"12px 16px",background:T.card,borderBottom:`1px solid ${T.border2}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <div>
+          <div style={{fontSize:10,color:T.muted,marginBottom:2}}>Total Portfolio</div>
+          <div style={{fontSize:20,fontWeight:800,color:T.text,letterSpacing:"-0.02em"}}>{fmtL(totalVal)}</div>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:13,color:up?T.greenTx:T.redTx,fontWeight:700}}>{up?"+":""}{fmtL(pnl)}</div>
+          <div style={{fontSize:12,color:up?T.greenTx:T.redTx,fontWeight:600}}>{up?"+":""}{pct}% all time</div>
+        </div>
+      </div>
+
+      {/* Scrollable position list, grouped by account */}
+      <div style={{flex:1,overflowY:"auto",padding:"12px 16px 16px"}}>
+        {grouped.map(({id, acct, positions})=>(
+          <div key={id} style={{marginBottom:16}}>
+            {/* Section header — tappable to open that account */}
+            <div onClick={()=>{ onBack(); onSelectAccount(id); }}
+              style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7,cursor:"pointer",padding:"6px 2px"}}>
+              <div style={{fontSize:11,fontWeight:700,color:T.sub,textTransform:"uppercase",letterSpacing:"0.1em"}}>{acct.label}</div>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:11,color:T.sub}}>{fmtL(acct.totalValue)}</span>
+                <span style={{fontSize:11,color:T.muted}}>›</span>
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:2}}>
+              {positions.map((pos,i)=>{
+                const p2=(pos.currentPrice-pos.avgCost)*pos.shares;
+                const pc=gp(pos.currentPrice,pos.avgCost);
+                const u2=isPos(pos.currentPrice,pos.avgCost);
+                const cov=COV[pos.ticker]; const cs=cov?covSt(cov.level):null;
+                return (
+                  <div key={pos.ticker} onClick={()=>onSelectTicker(pos.ticker)}
+                    style={{padding:"11px 13px",background:T.card,border:`1px solid ${T.border2}`,borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",animation:`fadeIn 0.25s ease ${i*0.02}s both`}}
+                    onMouseEnter={e=>e.currentTarget.style.borderColor=T.border}
+                    onMouseLeave={e=>e.currentTarget.style.borderColor=T.border2}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:2}}>
+                        <span style={{fontSize:14,fontWeight:700,color:T.text}}>{pos.ticker}</span>
+                        {pos.assetType==="ETF"&&<span style={{fontSize:9,padding:"1px 5px",background:T.pill,borderRadius:3,color:T.sub,fontWeight:600}}>ETF</span>}
+                        {pos.assetType==="CRYPTO"&&<span style={{fontSize:9,padding:"1px 5px",background:T.blueBg,borderRadius:3,color:T.blueTx,fontWeight:600}}>CRYPTO</span>}
+                        {cs&&<div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:5,height:5,borderRadius:"50%",background:cs.dot}}/><span style={{fontSize:9,color:cs.tx,fontWeight:600}}>{cs.lbl}</span></div>}
+                      </div>
+                      <div style={{fontSize:11,color:T.sub,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:170}}>{pos.name}</div>
+                      <div style={{fontSize:10,color:T.muted,marginTop:1}}>{pos.shares} {pos.assetType==="CRYPTO"?"units":"shares"}</div>
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0,marginLeft:8}}>
+                      <div style={{fontSize:13,fontWeight:600,color:T.text}}>${pos.currentPrice.toFixed(2)}</div>
+                      <div style={{fontSize:12,color:u2?T.greenTx:T.redTx,fontWeight:600}}>{u2?"+":""}{pc}%</div>
+                      <div style={{fontSize:10,color:u2?T.greenTx:T.redTx,opacity:0.8}}>{u2?"+":""}{gfmt(p2)}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+    </div>
+  );
+}
+
+// ─── ACCOUNT PORTFOLIO SCREEN ─────────────
+function AccountScreen({ acctId, onBack, onSelectTicker, tabs, activeTab, onTabChange }) {
+  const acct = ACCOUNTS[acctId];
+  const {allocs,hasWarn,warnSector,warnPct} = calcSectors(acct.positions);
+  const totalVal  = acct.totalValue;
+  const totalCost = acct.totalCost;
+  const up = totalVal >= totalCost;
+  const pnl = totalVal - totalCost;
+  const pct = gp(totalVal, totalCost);
+  const isCrypto = acct.type === "CRYPTO";
+
+  return (
+    <div style={{position:"absolute",inset:0,background:T.bg,zIndex:200,animation:"sUp 0.22s ease",display:"flex",flexDirection:"column"}}>
+      {/* Header */}
+      <div style={{background:T.card,borderBottom:`1px solid ${T.border}`,padding:"13px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+        <button onClick={onBack} style={{background:"none",border:"none",padding:"6px 4px",cursor:"pointer",fontSize:18,color:T.text,lineHeight:1}}>←</button>
+        <div style={{flex:1}}>
+          <div style={{fontSize:15,fontWeight:700,color:T.text}}>{acct.label}</div>
+          <div style={{fontSize:11,color:T.sub}}>{acct.type} Account</div>
+        </div>
+        <div style={{padding:"3px 10px",background:T.greenBg,border:`1px solid #BBF7D0`,borderRadius:20}}>
+          <span style={{fontSize:10,fontWeight:700,color:T.greenTx}}>{acct.label} ✓</span>
+        </div>
+      </div>
+
+      {/* Scrollable content */}
+      <div style={{flex:1,overflowY:"auto",padding:"14px 16px 16px"}}>
+        {/* Summary */}
+        <div style={{padding:"16px",background:T.card,border:`1px solid ${T.border}`,borderRadius:14,marginBottom:12}}>
+          <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Total Value</div>
+          <div style={{fontSize:28,fontWeight:800,letterSpacing:"-0.03em",color:T.text,lineHeight:1}}>{fmtL(totalVal)}</div>
+          <div style={{fontSize:12,color:up?T.green:T.red,fontWeight:600,marginTop:4}}>
+            {up?"+":""}{fmtL(pnl)} ({up?"+":""}{pct}%) all time
+          </div>
+          {!isCrypto && (
+            <div style={{marginTop:12}}>
+              <div style={{display:"flex",height:5,borderRadius:3,overflow:"hidden",gap:1}}>
+                {allocs.map((a,i)=><div key={a.sector} style={{width:`${a.pct}%`,background:SC[i%SC.length]}} title={`${a.sector}: ${a.pct.toFixed(1)}%`}/>)}
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"3px 10px",marginTop:5}}>
+                {allocs.slice(0,4).map((a,i)=>(
+                  <div key={a.sector} style={{display:"flex",alignItems:"center",gap:3}}>
+                    <div style={{width:5,height:5,borderRadius:"50%",background:SC[i%SC.length]}}/>
+                    <span style={{fontSize:10,color:T.muted}}>{a.sector} {a.pct.toFixed(0)}%</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
+        </div>
 
-          {/* Orchestrator Reasoning */}
-          {tile.orchestratorReasoning && (
-            <div style={{ padding:"16px 22px", borderBottom:"1px solid #eee" }}>
-              <div style={{ fontSize:10, fontWeight:800, color:"#ccc", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Why This Surfaced Today</div>
-              <div style={{ fontSize:12.5, color:"#555", lineHeight:1.6, fontStyle:"italic" }}>{tile.orchestratorReasoning}</div>
+        {hasWarn && (
+          <div style={{padding:"9px 13px",background:T.amberBg,border:`1px solid #FDE68A`,borderRadius:10,marginBottom:10,fontSize:12,color:T.amberTx,lineHeight:1.6}}>
+            ⚠ <strong>{warnSector} is {warnPct?.toFixed(0)}%</strong> of this portfolio. Consider diversification before adding more.
+          </div>
+        )}
+        {isCrypto && (
+          <div style={{padding:"12px 14px",background:T.blueBg,border:`1px solid #BFDBFE`,borderRadius:10,marginBottom:12,fontSize:12,color:T.blueTx,lineHeight:1.6}}>
+            ℹ Crypto dispositions are taxable events in Canada. Track cost basis carefully.
+          </div>
+        )}
+
+        <div style={{fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:7}}>
+          {acct.positions.length} Positions — tap to research
+        </div>
+
+        <div style={{display:"flex",flexDirection:"column",gap:2}}>
+          {acct.positions.map((pos,i)=>{
+            const p2=(pos.currentPrice-pos.avgCost)*pos.shares;
+            const pc=gp(pos.currentPrice,pos.avgCost);
+            const u2=isPos(pos.currentPrice,pos.avgCost);
+            const cov=COV[pos.ticker]; const cs=cov?covSt(cov.level):null;
+            return (
+              <div key={pos.ticker} onClick={()=>onSelectTicker(pos.ticker)}
+                style={{padding:"12px 13px",background:T.card,border:`1px solid ${T.border2}`,borderRadius:10,cursor:"pointer",transition:"border-color 0.12s",animation:`fadeIn 0.3s ease ${i*0.025}s both`}}
+                onMouseEnter={e=>e.currentTarget.style.borderColor=T.border}
+                onMouseLeave={e=>e.currentTarget.style.borderColor=T.border2}>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:2}}>
+                      <span style={{fontSize:14,fontWeight:700,color:T.text}}>{pos.ticker}</span>
+                      {pos.assetType==="ETF"&&<span style={{fontSize:9,padding:"1px 5px",background:T.pill,borderRadius:3,color:T.sub,fontWeight:600}}>ETF</span>}
+                      {pos.assetType==="CRYPTO"&&<span style={{fontSize:9,padding:"1px 5px",background:T.blueBg,borderRadius:3,color:T.blueTx,fontWeight:600}}>CRYPTO</span>}
+                      {cs&&<div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:5,height:5,borderRadius:"50%",background:cs.dot}}/><span style={{fontSize:9,color:cs.tx,fontWeight:600}}>{cs.lbl}</span></div>}
+                    </div>
+                    <div style={{fontSize:11,color:T.sub,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180,marginBottom:2}}>{pos.name}</div>
+                    <div style={{fontSize:10,color:T.muted}}>{pos.shares} {pos.assetType==="CRYPTO"?"units":"shares"} · avg ${pos.avgCost<1000?pos.avgCost.toFixed(2):pos.avgCost.toLocaleString()}</div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0,marginLeft:8}}>
+                    <div style={{fontSize:13,fontWeight:600,color:T.text}}>${pos.currentPrice.toFixed(2)}</div>
+                    <div style={{fontSize:12,color:u2?T.green:T.red,fontWeight:600}}>{u2?"+":""}{pc}%</div>
+                    <div style={{fontSize:10,color:u2?T.green:T.red,opacity:0.7}}>{u2?"+":""}{gfmt(p2)}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+// ─── SEARCH TAB ──────────────────────────
+function SearchTab({ onSelect }) {
+  const [q,setQ]=useState(""), [results,setResults]=useState([]), [focused,setFocused]=useState(false);
+  const TRENDING=["AAPL","MSFT","META","SHOP","RY","TD","CNR","SU"];
+  useEffect(()=>{
+    if(!q.trim()){setResults([]);return;}
+    const qU=q.trim().toUpperCase();
+    setResults(ALL_POSITIONS.filter(p=>p.ticker.includes(qU)||p.name.toUpperCase().includes(qU)).slice(0,8));
+  },[q]);
+  const trending=ALL_POSITIONS.filter(p=>TRENDING.includes(p.ticker));
+
+  const Row=({pos})=>{
+    const owned=!!inAccount(pos.ticker);
+    const cov=COV[pos.ticker];const cs=cov?covSt(cov.level):null;
+    return (
+      <div onClick={()=>onSelect(pos.ticker)}
+        style={{padding:"11px 13px",background:T.card,border:`1px solid ${T.border2}`,borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"border-color 0.12s"}}
+        onMouseEnter={e=>e.currentTarget.style.borderColor=T.border}
+        onMouseLeave={e=>e.currentTarget.style.borderColor=T.border2}>
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+            <span style={{fontSize:14,fontWeight:700,color:T.text}}>{pos.ticker}</span>
+            {pos.assetType==="ETF"&&<span style={{fontSize:9,padding:"1px 5px",background:T.pill,borderRadius:3,color:T.sub,fontWeight:600}}>ETF</span>}
+            {owned&&<span style={{fontSize:9,padding:"1px 5px",background:T.greenBg,borderRadius:3,color:T.greenTx,fontWeight:600}}>IN PORTFOLIO</span>}
+          </div>
+          <div style={{fontSize:11,color:T.sub,marginBottom:1}}>{pos.name}</div>
+          {cs&&<div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:5,height:5,borderRadius:"50%",background:cs.dot}}/><span style={{fontSize:10,color:cs.tx}}>{cs.lbl}{cov?` · ${cov.n} analysts`:""}</span></div>}
+        </div>
+        <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
+          <div style={{fontSize:13,fontWeight:600,color:T.text}}>${pos.currentPrice.toFixed(2)}</div>
+          <div style={{fontSize:11,color:T.sub}}>{pos.sector}</div>
+        </div>
+      </div>
+    );
+  };
+  return (
+    <div style={{padding:"14px 16px 20px"}}>
+      <div style={{position:"relative",marginBottom:12}}>
+        <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:14,color:T.muted,pointerEvents:"none"}}>🔍</span>
+        <input value={q} onChange={e=>setQ(e.target.value)} onFocus={()=>setFocused(true)} onBlur={()=>setTimeout(()=>setFocused(false),150)} placeholder="Search ticker or company..."
+          style={{width:"100%",padding:"12px 14px 12px 34px",background:T.card,border:`1px solid ${focused?T.text:T.border}`,borderRadius:12,color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",transition:"border-color 0.15s"}}/>
+        {q&&<button onClick={()=>setQ("")} style={{position:"absolute",right:11,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:17,lineHeight:1}}>×</button>}
+      </div>
+      {q&&results.length===0&&<div style={{padding:"24px",textAlign:"center"}}><div style={{fontSize:20,marginBottom:6}}>🔎</div><div style={{fontSize:14,color:T.sub}}>No results for "{q}"</div></div>}
+      {results.length>0&&<><div style={{fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:7}}>Results</div><div style={{display:"flex",flexDirection:"column",gap:2,marginBottom:14}}>{results.map(p=><Row key={p.ticker} pos={p}/>)}</div></>}
+      {!q&&<><div style={{fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:7}}>Trending</div><div style={{display:"flex",flexDirection:"column",gap:2}}>{trending.map(p=><Row key={p.ticker} pos={p}/>)}</div></>}
+    </div>
+  );
+}
+
+// ─── GLOBAL CHAT ─────────────────────────
+function ChatTab() {
+  const [messages,setMessages]=useState([]);
+  const [input,setInput]=useState("");
+  const [loading,setLoading]=useState(false);
+  const endRef=useRef(null);
+  const totalVal=Object.values(ACCOUNTS).reduce((s,a)=>s+a.totalValue,0);
+  const summary=Object.values(ACCOUNTS).flatMap(a=>a.positions.map(p=>`${p.ticker}(${a.type})`)).join(", ");
+  const sys=`ROLE: You are Simple Research, Wealthsimple AI assistant. NOT a financial advisor.
+PORTFOLIO: TFSA + Non-Reg + Crypto accounts, total ~$${Math.round(totalVal).toLocaleString()} CAD. Positions: ${summary}
+RULES: No buy/sell recommendations. "Decision is yours" when asked. End every response: "This is informational only and does not constitute financial, investment, or tax advice."`;
+  useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
+  const MAX_CHAT = 5;
+  const send=async()=>{
+    const text=input.trim();if(!text||loading)return;
+    if(messages.filter(m=>m.role==="user").length >= MAX_CHAT){setInput("");return;}
+    setInput("");
+    const um={role:"user",content:text};const msgs=[...messages,um];setMessages(msgs);setLoading(true);
+    try{
+      const d=await callClaude({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1000,
+        system:[{type:"text",text:sys,cache_control:{type:"ephemeral"}}],
+        messages:msgs.map(({role,content})=>({role,content}))
+      });
+      setMessages(prev=>[...prev,{role:"assistant",content:d.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"Research unavailable."}]);
+    }catch{setMessages(prev=>[...prev,{role:"assistant",content:"Unable to connect."}]);}
+    setLoading(false);
+  };
+  const SUGG=["What's the analyst view on my TFSA holdings?","Which positions have the weakest analyst coverage?","How does concentration look across my accounts?","What are the tax implications if I sell my Apple shares?"];
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 108px)"}}>
+      <div style={{flex:1,overflowY:"auto",padding:"14px 16px",display:"flex",flexDirection:"column",gap:9}}>
+        {messages.length===0&&(
+          <div>
+            <div style={{textAlign:"center",padding:"18px 0 14px"}}>
+              <div style={{fontSize:22,marginBottom:7}}>💬</div>
+              <div style={{fontSize:15,fontWeight:600,color:T.text,marginBottom:3}}>Ask Simple Research</div>
+              <div style={{fontSize:12,color:T.sub,lineHeight:1.65}}>Any stock, across all your accounts. Full context loaded.</div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+              {SUGG.map((s,i)=>(
+                <button key={i} onClick={()=>setInput(s)}
+                  style={{padding:"9px 13px",background:T.card,border:`1px solid ${T.border}`,borderRadius:10,color:T.sub,fontSize:12,cursor:"pointer",textAlign:"left",fontFamily:"inherit",lineHeight:1.5}}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor=T.text}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>{s}</button>
+              ))}
+            </div>
+          </div>
+        )}
+        {messages.map((m,i)=>(
+          <div key={i} style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"90%",padding:"10px 13px",borderRadius:m.role==="user"?"14px 14px 2px 14px":"14px 14px 14px 2px",background:m.role==="user"?T.ws:T.card,border:m.role==="assistant"?`1px solid ${T.border}`:"none",color:m.role==="user"?T.card:T.text,fontSize:13,lineHeight:1.65,whiteSpace:"pre-wrap"}}>
+            {m.content}
+            {m.role==="assistant"&&m.content.includes("decision is yours")&&(
+              <button style={{display:"block",marginTop:7,padding:"5px 10px",background:T.greenBg,border:`1px solid #BBF7D0`,borderRadius:6,color:T.greenTx,fontSize:11,cursor:"pointer",fontWeight:600}}>Talk to a Wealthsimple advisor →</button>
+            )}
+          </div>
+        ))}
+        {loading&&<div style={{alignSelf:"flex-start",padding:"10px 13px",background:T.card,border:`1px solid ${T.border}`,borderRadius:"14px 14px 14px 2px",fontSize:13,color:T.sub}}>Researching...</div>}
+        <div ref={endRef}/>
+      </div>
+      <div style={{borderTop:`1px solid ${T.border}`,padding:"10px 14px 12px",background:T.card,flexShrink:0}}>
+        <div style={{display:"flex",gap:7}}>
+          {messages.filter(m=>m.role==="user").length >= MAX_CHAT && (
+            <div style={{padding:"8px 12px",background:"#FFF8E7",border:"1px solid #FDE68A",borderRadius:8,fontSize:11,color:"#92400E",marginBottom:6,textAlign:"center"}}>
+              Research cap reached (5 messages per session).
             </div>
           )}
-
-          {/* Suggested Action */}
-          {tile.suggestedAction && (
-            <div style={{ padding:"16px 22px" }}>
-              <div style={{ fontSize:10, fontWeight:800, color:"#ccc", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Suggested Action</div>
-              <div style={{
-                fontSize:13, color:persona.color, fontWeight:600, lineHeight:1.6,
-                background:persona.light, padding:"10px 13px", borderRadius:9, border:`1px solid ${persona.accent}33`
-              }}>{tile.suggestedAction}</div>
-            </div>
-          )}
+          <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Ask about any stock or your portfolio..." disabled={messages.filter(m=>m.role==="user").length >= MAX_CHAT}
+            style={{flex:1,background:T.bg,border:`1px solid ${T.border}`,borderRadius:10,padding:"11px 13px",color:T.text,fontSize:16,outline:"none",fontFamily:"inherit"}}
+            onFocus={e=>e.target.style.borderColor=T.text} onBlur={e=>e.target.style.borderColor=T.border}/>
+          <button onClick={send} disabled={loading||!input.trim()}
+            style={{padding:"11px 15px",background:input.trim()?T.ws:T.border,border:"none",borderRadius:10,color:input.trim()?T.card:T.sub,cursor:input.trim()?"pointer":"default",fontSize:15,fontWeight:700}}>↑</button>
+        </div>
+        <div style={{marginTop:6,padding:"8px 10px",background:T.compBg,border:`1px solid ${T.compBr}`,borderRadius:8}}>
+          <div style={{fontSize:10,fontWeight:600,color:T.compTx,marginBottom:1}}>⚠️ Not financial or investment advice</div>
+          <div style={{fontSize:10,color:T.compTx,lineHeight:1.5,opacity:0.85}}>Informational only. Consult a qualified advisor before acting. Wealthsimple advisors are available for personalized guidance.</div>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── BOTTOM CHAT ──────────────────────────────────────────────────────────────
-function BottomChat({ persona, open, toggle }) {
-  const sys = `You are an AI orchestrator for ${persona.name}, ${persona.role} at Wealthsimple. You have access to: ${persona.mcps.join(", ")}. Help explore data, surface insights, and take actions. When producing any draft, label it "DRAFT — Awaiting your approval". Only access data within ${persona.name}'s role permissions.`;
-  const { msgs, busy, routing, rStep, send } = useChat(sys, persona.mcps, null, persona.id);
-  const ref = useRef(null);
-  useEffect(() => { if (ref.current && open) ref.current.scrollTop = ref.current.scrollHeight; }, [msgs, busy, open]);
+// ─── HOME SCREEN ─────────────────────────
+function HomeTab({ onSelectAccount, onSelectTicker }) {
+  const [hideBalance, setHideBalance] = useState(false);
+  const totalAll     = Object.values(ACCOUNTS).reduce((s,a)=>s+a.totalValue,0);
+  const totalCostAll = Object.values(ACCOUNTS).reduce((s,a)=>s+a.totalCost,0);
+  const allUp  = totalAll >= totalCostAll;
+  const allPnl = totalAll - totalCostAll;
+  const allPct = gp(totalAll, totalCostAll);
+  const investVal  = ACCOUNTS.tfsa.totalValue + ACCOUNTS.nonreg.totalValue;
+  const investCost = ACCOUNTS.tfsa.totalCost  + ACCOUNTS.nonreg.totalCost;
+  const investUp   = investVal >= investCost;
+  const investPct  = gp(investVal, investCost);
+  const cryptoUp   = ACCOUNTS.crypto.totalValue >= ACCOUNTS.crypto.totalCost;
+  const cryptoPct  = gp(ACCOUNTS.crypto.totalValue, ACCOUNTS.crypto.totalCost);
+
+  // ── Derived insights ──
+  const tfsaTech    = calcSectors(ACCOUNTS.tfsa.positions);
+  const tfsaTechPct = tfsaTech.allocs.find(a=>a.sector==="Technology")?.pct || 0;
+  const tfsaLosers  = [...ACCOUNTS.tfsa.positions]
+    .filter(p=>p.currentPrice < p.avgCost)
+    .sort((a,b)=>((a.currentPrice-a.avgCost)/a.avgCost)-((b.currentPrice-b.avgCost)/b.avgCost))
+    .slice(0,2);
+  const bestPos = [...ACCOUNTS.tfsa.positions,...ACCOUNTS.nonreg.positions]
+    .sort((a,b)=>((b.currentPrice-b.avgCost)/b.avgCost)-((a.currentPrice-a.avgCost)/a.avgCost))[0];
+  const superficialRisk = [...ACCOUNTS.tfsa.positions,...ACCOUNTS.nonreg.positions].filter(p=>{
+    const days=Math.floor((new Date()-new Date(p.lastPurchaseDate))/86400000);
+    return days<30 && p.currentPrice<p.avgCost;
+  });
+  const nonregGains = ACCOUNTS.nonreg.positions
+    .filter(p=>p.currentPrice>p.avgCost)
+    .reduce((s,p)=>s+(p.currentPrice-p.avgCost)*p.shares,0);
+
+  const INSIGHTS = [
+    {
+      type:"concentration",icon:"⚠️",tag:"Concentration Risk",
+      tagColor:"#F59E0B",tagBg:"#2A2000",tagBorder:"#3D2E00",
+      title:`Tech is ${tfsaTechPct.toFixed(0)}% of your TFSA`,
+      body:`NVDA (+82%), AMD (+15%), TSLA (−15%), VRT (+11%), and HIMX (+22%) are all in Technology. Adding more tech — even strong picks — increases single-sector exposure. Analysts rate NVDA Strong Buy (42 analysts) but concentration risk is independent of conviction.`,
+      cta:"Review TFSA",acctId:"tfsa",
+    },
+    {
+      type:"taxloss",icon:"💸",tag:"Tax Opportunity",
+      tagColor:"#60A5FA",tagBg:"#0A1A2E",tagBorder:"#1A2E44",
+      title:`${tfsaLosers.map(p=>p.ticker).join(" & ")} down — but it's a TFSA`,
+      body:`${tfsaLosers.map(p=>`${p.ticker} is down ${Math.abs(gp(p.currentPrice,p.avgCost))}% (${gfmt(Math.abs((p.currentPrice-p.avgCost)*p.shares))} unrealized loss)`).join(", ")}. TFSA losses cannot offset capital gains — no tax-loss harvesting benefit here. Analyst consensus on ${tfsaLosers[0]?.ticker}: ${RESEARCH[tfsaLosers[0]?.ticker]?.rating||"HOLD"} — review the thesis before acting.`,
+      cta:"View position",ticker:tfsaLosers[0]?.ticker,
+    },
+    {
+      type:"nonregtax",icon:"🧾",tag:"Tax Exposure",
+      tagColor:"#A78BFA",tagBg:"#1A0A2E",tagBorder:"#2E1A44",
+      title:`$${nonregGains.toFixed(0)} unrealized gains in Non-Reg`,
+      body:`AAPL (+$491), MSFT (+$175), RY (+$240), and ENB (+$284) are all showing gains in your Non-Registered account. If sold, 50% of each gain is included in taxable income under CRA rules. AAPL has Buy consensus at $240 PT — no urgent sell signal, but worth knowing your tax exposure before year-end.`,
+      cta:"Review Non-Reg",acctId:"nonreg",
+    },
+    {
+      type:"winner",icon:"🚀",tag:"Top Performer",
+      tagColor:"winner",tagBg:"winner",tagBorder:"winner",
+      title:`${bestPos?.ticker} is your biggest winner at +${gp(bestPos?.currentPrice,bestPos?.avgCost)}%`,
+      body:`${bestPos?.name} is up ${gp(bestPos?.currentPrice,bestPos?.avgCost)}% since your avg cost of $${bestPos?.avgCost.toFixed(2)}. ${RESEARCH[bestPos?.ticker]?.rating||"BUY"} consensus with ${COV[bestPos?.ticker]?.n||"—"} analysts. ${RESEARCH[bestPos?.ticker]?.bull?.text||"Strong institutional coverage."} ${bestPos?.ticker==="NVDA"?"It's your largest unrealized gain — worth considering whether the position size still fits your risk appetite.":""}`,
+      cta:"View research",ticker:bestPos?.ticker,
+    },
+    ...(superficialRisk.length>0?[{
+      type:"superficial",icon:"⏱️",tag:"ITA §54 Warning",
+      tagColor:"super",tagBg:"super",tagBorder:"super",
+      title:`${superficialRisk.map(p=>p.ticker).join(", ")} — superficial loss window`,
+      body:`${superficialRisk.map(p=>{const d=Math.floor((new Date()-new Date(p.lastPurchaseDate))/86400000);return `${p.ticker} purchased ${d} days ago, showing a loss of ${gfmt(Math.abs((p.currentPrice-p.avgCost)*p.shares))}`;}).join(". ")}. Under ITA §54, selling at a loss within 30 days of purchase and reacquiring the same security causes the loss to be denied by CRA.`,
+      cta:"See tax details",ticker:superficialRisk[0]?.ticker,
+    }]:[]),
+  ];
+
+  // All positions across every account for the holdings strip
+  const allPositions = Object.values(ACCOUNTS).flatMap(a=>a.positions);
+  const totalHoldings = allPositions.length;
+  // Pick 4 representative tickers from across accounts
+  const stripTickers = ["NVDA","AAPL","BTC","RY"];
+  const stripColors  = ["#76B900","#555555","#F7931A","#002E5F"];
+
+  // Insight tag colours resolved from theme
+  const insightTheme = [
+    { tagBg:T.tagAmberBg, tagBr:T.tagAmberBr, tagTx:T.tagAmberTx },
+    { tagBg:T.tagBlueBg,  tagBr:T.tagBlueBr,  tagTx:T.tagBlueTx  },
+    { tagBg:T.tagPurBg,   tagBr:T.tagPurBr,   tagTx:T.tagPurTx   },
+    { tagBg:T.tagGreenBg, tagBr:T.tagGreenBr, tagTx:T.tagGreenTx },
+    { tagBg:T.tagRedBg,   tagBr:T.tagRedBr,   tagTx:T.tagRedTx   },
+  ];
 
   return (
-    <div style={{ background:"#fff", borderTop:"1px solid #e5e5e5", flexShrink:0 }}>
-      <div onClick={toggle} style={{
-        height:46, display:"flex", alignItems:"center", padding:"0 24px", gap:10,
-        cursor:"pointer", userSelect:"none",
-        background:open ? persona.color : "#fff", transition:"background 0.2s"
-      }}>
-        <div style={{ width:7, height:7, borderRadius:99, background:open?"rgba(255,255,255,0.7)":persona.accent, animation:"pulse 2s infinite" }}/>
-        <span style={{ fontSize:13, fontWeight:700, color:open?"#fff":persona.color }}>Ask the Orchestrator</span>
-        {!open && (
-          <span style={{ fontSize:12, color:"#bbb" }}>
-            {msgs.length > 0
-              ? `${msgs.length} message${msgs.length>1?"s":""} in session`
-              : `— ask anything across ${persona.mcps.length} sources`}
-          </span>
-        )}
-        <span style={{ marginLeft:"auto", fontSize:13, color:open?"rgba(255,255,255,0.5)":"#ccc", display:"inline-block", transform:open?"rotate(180deg)":"none", transition:"transform 0.2s" }}>▾</span>
+    <div style={{background:T.bg,minHeight:"100%",paddingBottom:24}}>
+
+      {/* ── Net worth hero ── */}
+      <div style={{padding:"20px 20px 16px",textAlign:"center"}}>
+        <div style={{fontSize:11,color:T.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>Total portfolio</div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:4}}>
+          <div style={{fontSize:36,fontWeight:800,letterSpacing:"-0.04em",color:T.text,lineHeight:1}}>
+            {hideBalance ? "•••••••" : fmtL(totalAll)}
+          </div>
+          <button onClick={()=>setHideBalance(h=>!h)}
+            style={{width:32,height:32,borderRadius:"50%",background:T.pill,border:`1px solid ${T.border}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              {hideBalance
+                ? <><path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z" stroke={T.sub} strokeWidth="1.4"/><circle cx="8" cy="8" r="2" stroke={T.sub} strokeWidth="1.4"/><line x1="3" y1="3" x2="13" y2="13" stroke={T.sub} strokeWidth="1.4" strokeLinecap="round"/></>
+                : <><path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z" stroke={T.sub} strokeWidth="1.4"/><circle cx="8" cy="8" r="2" stroke={T.sub} strokeWidth="1.4"/></>
+              }
+            </svg>
+          </button>
+        </div>
+        <div style={{fontSize:13,color:allUp?T.green:T.red,fontWeight:600}}>
+          {allUp?"+":""}{fmtL(allPnl)} ({allUp?"+":""}{allPct}%) all time
+        </div>
       </div>
 
-      <div style={{ height:open?360:0, overflow:"hidden", transition:"height 0.25s ease", display:"flex", flexDirection:"column" }}>
-        {open && (
-          <>
-            <div ref={ref} style={{ flex:1, overflowY:"auto", padding:"12px 24px", minHeight:0 }}>
-              <RoutingBar sources={persona.mcps} accent={persona.accent} on={routing} step={rStep}/>
-              {msgs.length===0 && !routing && (
-                <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                  {persona.suggestions.map(s => (
-                    <button key={s} onClick={()=>send(s)} style={{
-                      padding:"6px 13px", borderRadius:99,
-                      border:`1.5px solid ${persona.accent}44`,
-                      background:persona.light, color:persona.color,
-                      fontSize:12, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap"
-                    }}>{s}</button>
-                  ))}
-                </div>
-              )}
-              {msgs.map((m, i) => <Bubble key={i} msg={m} accent={persona.accent}/>)}
-              {busy && !routing && <ThinkingDots accent={persona.accent}/>}
-            </div>
-            <div style={{ padding:"8px 24px 14px", borderTop:"1px solid #f5f5f5" }}>
-              <ChatInput onSend={send} busy={busy} accent={persona.accent} placeholder={`Ask across ${persona.mcps.join(", ")}...`}/>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── MAIN APP ─────────────────────────────────────────────────────────────────
-export default function App() {
-  const [pid,      setPid]      = useState("sarah");
-  const [drill,    setDrill]    = useState(null);
-  const [fb,       setFb]       = useState({});
-  const [chatOpen, setChatOpen] = useState(false);
-
-  const persona = PERSONAS_CONFIG[pid];
-  const { tiles, loading, routing, routeStep, error, refresh } = useTileOrchestrator(persona);
-
-  const now = new Date().toLocaleDateString("en-CA", { weekday:"long", month:"long", day:"numeric" });
-  const urgentLeft = (tiles||[]).filter(t => t.urgency==="high" && !fb[t.id]).length;
-
-  const handleDone = id => { setFb(x => ({...x, [id]:"done"})); setDrill(null); };
-
-  return (
-    <div style={{ height:"100vh", display:"flex", flexDirection:"column", fontFamily:"'DM Sans',system-ui,sans-serif", background:"#f4f4f2", overflow:"hidden" }}>
-
-      {/* ── NAV ── */}
-      <div style={{ height:52, background:"#0f172a", display:"flex", alignItems:"center", padding:"0 24px", gap:16, flexShrink:0 }}>
-        <div style={{ width:28, height:28, borderRadius:7, background:"linear-gradient(135deg,#22c55e,#3b82f6)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:900, color:"#0f172a" }}>W</div>
-        <span style={{ color:"#fff", fontWeight:700, fontSize:14 }}>Wealthsimple Intelligence</span>
-        <span style={{ color:"#ffffff33", fontSize:13 }}>/</span>
-        <span style={{ color:"#ffffff55", fontSize:13 }}>Orchestrated Platform</span>
-        <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:16 }}>
-          <span style={{ color:"#ffffff44", fontSize:11 }}>{now}</span>
-          <div style={{ display:"flex", alignItems:"center", gap:7, background:"#ffffff0e", borderRadius:8, padding:"5px 12px" }}>
-            <div style={{ width:6, height:6, borderRadius:99, background: loading ? "#f59e0b" : "#22c55e", animation:"pulse 2s infinite" }}/>
-            <span style={{ color:"#fff", fontSize:11, fontWeight:600 }}>
-              {loading ? "Orchestrator Running..." : "Orchestrator Active"}
-            </span>
+      {/* ── Spend / Invest top tiles ── */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,padding:"0 16px 10px"}}>
+        {/* Spend — static placeholder */}
+        <div style={{padding:"15px",background:T.card,border:`1px solid ${T.border2}`,borderRadius:14,cursor:"pointer"}}>
+          <div style={{fontSize:12,color:T.sub,marginBottom:5}}>Spend</div>
+          <div style={{fontSize:19,fontWeight:800,color:T.text,letterSpacing:"-0.02em",marginBottom:8}}>
+            {hideBalance?"•••••••":"$0.00"}
+          </div>
+          <div style={{display:"inline-flex",padding:"3px 8px",background:T.pill,borderRadius:20,border:`1px solid ${T.border}`}}>
+            <span style={{fontSize:11,fontWeight:600,color:T.muted}}>Chequing</span>
+          </div>
+        </div>
+        {/* Invest — drills into InvestScreen */}
+        <div onClick={()=>onSelectAccount("invest")}
+          style={{padding:"15px",background:T.card,border:`1px solid ${T.border2}`,borderRadius:14,cursor:"pointer"}}>
+          <div style={{fontSize:12,color:T.sub,marginBottom:5}}>Invest</div>
+          <div style={{fontSize:19,fontWeight:800,color:T.text,letterSpacing:"-0.02em",marginBottom:8}}>
+            {hideBalance?"•••••••":fmtL(totalAll)}
+          </div>
+          <div style={{display:"inline-flex",padding:"3px 8px",background:allUp?T.greenBg:T.redBg,borderRadius:20}}>
+            <span style={{fontSize:11,fontWeight:600,color:allUp?T.greenTx:T.redTx}}>{allUp?"+":""}{allPct}% all time</span>
           </div>
         </div>
       </div>
 
-      {/* ── PERSONA TABS ── */}
-      <div style={{ background:"#fff", borderBottom:"1px solid #e8e8e8", display:"flex", alignItems:"stretch", padding:"0 24px", gap:2, flexShrink:0 }}>
-        {Object.values(PERSONAS_CONFIG).map(q => {
-          const active = pid === q.id;
-          return (
-            <button key={q.id}
-              onClick={() => { setPid(q.id); setDrill(null); setChatOpen(false); setFb({}); }}
-              style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 18px", background:"none", border:"none", borderBottom:`2.5px solid ${active?q.accent:"transparent"}`, cursor:"pointer", transition:"all 0.15s" }}>
-              <div style={{ width:32, height:32, borderRadius:99, background:active?q.color:"#ebebeb", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10.5, fontWeight:800, color:active?"#fff":"#aaa", flexShrink:0 }}>{q.avatar}</div>
-              <div style={{ textAlign:"left" }}>
-                <div style={{ fontSize:13, fontWeight:700, color:active?q.color:"#555", lineHeight:1.2 }}>{q.name}</div>
-                <div style={{ fontSize:10.5, color:"#bbb" }}>{q.role}</div>
+      {/* ── Holdings strip — ALL accounts ── */}
+      <div style={{margin:"0 16px 14px",padding:"12px 14px",background:T.card,border:`1px solid ${T.border2}`,borderRadius:14,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}
+        onClick={()=>onSelectAccount("all")}>
+        <div style={{display:"flex",marginRight:2}}>
+          {stripTickers.map((tk,i)=>(
+            <div key={tk} style={{width:28,height:28,borderRadius:"50%",background:stripColors[i],border:`2px solid ${T.card}`,marginLeft:i>0?-10:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:800,color:"#fff",zIndex:4-i,flexShrink:0}}>
+              {tk[0]}
+            </div>
+          ))}
+          <div style={{width:28,height:28,borderRadius:"50%",background:T.pill,border:`2px solid ${T.card}`,marginLeft:-10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:T.sub,flexShrink:0}}>
+            +{totalHoldings-4}
+          </div>
+        </div>
+        <span style={{fontSize:13,color:T.text,fontWeight:500,flex:1}}>
+          {totalHoldings} holdings across all accounts
+        </span>
+        <span style={{color:T.muted,fontSize:18}}>›</span>
+      </div>
+
+      {/* ── Accounts section ── */}
+      <div style={{padding:"0 16px 16px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+          <div style={{fontSize:17,fontWeight:700,color:T.text}}>Accounts</div>
+          <div style={{width:30,height:30,borderRadius:"50%",background:T.pill,border:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <path d="M7 2v10M2 7h10" stroke={T.sub} strokeWidth="1.6" strokeLinecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <div style={{background:T.card,border:`1px solid ${T.border2}`,borderRadius:14,overflow:"hidden"}}>
+          {Object.entries(ACCOUNTS).map(([id,acct],i,arr)=>{
+            const up2 = acct.totalValue>=acct.totalCost;
+            const pct2 = gp(acct.totalValue,acct.totalCost);
+            return (
+              <div key={id} onClick={()=>onSelectAccount(id)}
+                style={{padding:"15px 16px",borderBottom:i<arr.length-1?`1px solid ${T.border2}`:"none",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",transition:"background 0.1s"}}
+                onMouseEnter={e=>e.currentTarget.style.background=T.bg}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <div>
+                  <div style={{fontSize:15,fontWeight:600,color:T.text,marginBottom:2}}>{acct.label}</div>
+                  <div style={{fontSize:12,color:T.muted}}>{acct.type} · {acct.positions.length} positions</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:15,fontWeight:600,color:T.text,marginBottom:2}}>
+                    {hideBalance?"•••••••":fmtL(acct.totalValue)}
+                  </div>
+                  <div style={{fontSize:12,fontWeight:600,color:up2?T.greenTx:T.redTx}}>
+                    {up2?"+":""}{pct2}% all time
+                  </div>
+                </div>
               </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── For you — Simple Research Insights ── */}
+      <div style={{padding:"0 16px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+          <div style={{fontSize:17,fontWeight:700,color:T.text}}>For you</div>
+          <div style={{fontSize:11,color:T.ws,fontWeight:700,padding:"2px 8px",background:T.greenBg,borderRadius:12}}>{INSIGHTS.length} insights</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {INSIGHTS.map((ins,i)=>{
+            const th = insightTheme[i % insightTheme.length];
+            return (
+              <div key={i}
+                onClick={()=>{if(ins.ticker)onSelectTicker(ins.ticker);else if(ins.acctId)onSelectAccount(ins.acctId);}}
+                style={{background:T.card,border:`1px solid ${T.border2}`,borderRadius:14,overflow:"hidden",cursor:"pointer",transition:"border-color 0.15s,box-shadow 0.15s"}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,0.06)";}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border2;e.currentTarget.style.boxShadow="none";}}>
+                <div style={{padding:"8px 14px",background:th.tagBg,borderBottom:`1px solid ${th.tagBr}`,display:"flex",alignItems:"center",gap:7}}>
+                  <span style={{fontSize:13}}>{ins.icon}</span>
+                  <span style={{fontSize:10,fontWeight:700,color:th.tagTx,textTransform:"uppercase",letterSpacing:"0.08em"}}>{ins.tag}</span>
+                </div>
+                <div style={{padding:"13px 14px"}}>
+                  <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:7,lineHeight:1.35}}>{ins.title}</div>
+                  <div style={{fontSize:12,color:T.sub,lineHeight:1.7}}>{ins.body}</div>
+                  <div style={{marginTop:11,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span style={{fontSize:12,fontWeight:600,color:T.ws}}>{ins.cta} →</span>
+                    {ins.ticker&&COV[ins.ticker]&&(
+                      <span style={{fontSize:10,color:T.muted}}>{COV[ins.ticker].n} analysts · {RESEARCH[ins.ticker]?.rating}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Bottom compliance notice — prominent ── */}
+      <div style={{margin:"16px 16px 0",padding:"13px 15px",background:T.compBg,border:`1.5px solid ${T.compBr}`,borderRadius:12}}>
+        <div style={{fontSize:11,fontWeight:700,color:T.compTx,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:4}}>Important disclaimer</div>
+        <div style={{fontSize:11,color:T.compTx,lineHeight:1.6,opacity:0.9}}>
+          Simple Research is an informational tool only. Analyst data, price targets, and tax context are provided for research purposes and do not constitute financial, investment, or tax advice. Past performance is not indicative of future results. Always consult a qualified financial advisor or tax professional before making investment decisions. Wealthsimple is not responsible for the accuracy of third-party analyst data.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── APP SHELL ───────────────────────────
+export default function App() {
+  const [tab,        setTab]        = useState("home");
+  const [acctId,     setAcctId]     = useState(null);
+  const [tickerInfo, setTickerInfo] = useState(null);
+
+
+
+  const handleSelectAccount = (id) => setAcctId(id);
+  const handleSelectTicker  = (ticker) => {
+    const a = inAccount(ticker);
+    setTickerInfo({ ticker, acctType: a?.type||"NON_REG" });
+  };
+
+  const tabActive   = T.ws;
+  const tabInactive = T.muted;
+
+  // Tab definitions — 4 tabs matching WS layout
+  const TABS = [
+    { id:"home",   label:"Home",
+      icon:(a)=>(
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M3 10L11 3L19 10V19H15V14H7V19H3V10Z"
+            stroke={a?tabActive:tabInactive} strokeWidth="1.7"
+            fill={a?tabActive+"22":"none"} strokeLinejoin="round"/>
+        </svg>
+      )},
+    { id:"search", label:"Search",
+      icon:(a)=>(
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <circle cx="9.5" cy="9.5" r="6" stroke={a?tabActive:tabInactive} strokeWidth="1.7"/>
+          <path d="M14 14L19 19" stroke={a?tabActive:tabInactive} strokeWidth="1.7" strokeLinecap="round"/>
+        </svg>
+      )},
+    { id:"transfer", label:"Transfer",
+      icon:(a)=>(
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M5 8h12M14 5l3 3-3 3" stroke={a?tabActive:tabInactive} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M17 14H5M8 11l-3 3 3 3" stroke={a?tabActive:tabInactive} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )},
+    { id:"chat",   label:"Research",
+      icon:(a)=>(
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M4 5a1 1 0 011-1h12a1 1 0 011 1v9a1 1 0 01-1 1H9l-5 3V5z"
+            stroke={a?tabActive:tabInactive} strokeWidth="1.7"
+            fill={a?tabActive+"22":"none"}/>
+        </svg>
+      )},
+  ];
+
+  const TOP_H    = 54;
+  const TAB_BAR_H= 62;
+
+  return (
+    <div style={{fontFamily:"'DM Sans','Helvetica Neue',sans-serif",maxWidth:430,width:"100%",margin:"0 auto",display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden",background:T.bg}}>
+      <style>{`
+        *{box-sizing:border-box;margin:0;padding:0}
+        ::-webkit-scrollbar{width:2px}
+        ::-webkit-scrollbar-thumb{background:${T.border}}
+        @keyframes sUp{from{transform:translateY(22px);opacity:0}to{transform:translateY(0);opacity:1}}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+      `}</style>
+
+      {/* ── Top bar ── */}
+      <div style={{flexShrink:0,height:TOP_H,background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",zIndex:40}}>
+        <div style={{position:"relative",width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <path d="M11 2a7 7 0 00-7 7v3l-2 3h18l-2-3V9a7 7 0 00-7-7z" stroke={T.text} strokeWidth="1.6" fill="none"/>
+            <path d="M9 18a2 2 0 004 0" stroke={T.text} strokeWidth="1.6"/>
+          </svg>
+          <div style={{position:"absolute",top:4,right:4,width:7,height:7,borderRadius:"50%",background:"#EF4444",border:`1.5px solid ${T.card}`}}/>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:7}}>
+          <div style={{width:6,height:6,borderRadius:"50%",background:T.muted,opacity:0.5}}/>
+          <div style={{padding:"5px 18px",background:T.pill,borderRadius:20}}>
+            <span style={{fontSize:14,fontWeight:600,color:T.text,letterSpacing:"-0.01em"}}>Home</span>
+          </div>
+          <div style={{width:6,height:6,borderRadius:"50%",background:T.muted,opacity:0.5}}/>
+        </div>
+        <div style={{width:32,height:32,borderRadius:"50%",background:T.pill,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <circle cx="9" cy="6" r="3" stroke={T.sub} strokeWidth="1.5"/>
+            <path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke={T.sub} strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+      {/* ── Middle zone: scrollable content + overlays stacked on top ── */}
+      <div style={{position:"relative",flex:1,minHeight:0}}>
+        {/* Scrollable tab content */}
+        <div style={{position:"absolute",inset:0,overflowY:tab==="chat"?"hidden":"auto",background:T.bg}}>
+          {tab==="home"     && <HomeTab onSelectAccount={handleSelectAccount} onSelectTicker={handleSelectTicker}/>}
+          {tab==="search"   && <SearchTab onSelect={handleSelectTicker}/>}
+          {tab==="transfer" && (
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:12}}>
+              <div style={{fontSize:32}}>⇄</div>
+              <div style={{fontSize:15,fontWeight:600,color:T.text}}>Transfer</div>
+              <div style={{fontSize:13,color:T.sub}}>Move money between accounts</div>
+              <div style={{fontSize:11,color:T.muted,marginTop:4}}>Out of scope for Simple Research prototype</div>
+            </div>
+          )}
+          {tab==="chat" && <ChatTab/>}
+        </div>
+        {/* Overlay screens — stack on top of scroll area */}
+        {tickerInfo && <TickerScreen ticker={tickerInfo.ticker} acctType={tickerInfo.acctType} onBack={()=>setTickerInfo(null)}/>}
+        {!tickerInfo && acctId==="all"    && <AllAccountsScreen onBack={()=>setAcctId(null)} onSelectTicker={handleSelectTicker} onSelectAccount={handleSelectAccount} tabs={TABS} activeTab={tab} onTabChange={setTab}/>}
+        {!tickerInfo && acctId==="invest" && <InvestScreen      onBack={()=>setAcctId(null)} onSelectTicker={handleSelectTicker} onSelectAccount={handleSelectAccount} tabs={TABS} activeTab={tab} onTabChange={setTab}/>}
+        {!tickerInfo && acctId==="stocks" && <StocksScreen      onBack={()=>setAcctId(null)} onSelectTicker={handleSelectTicker} onSelectAccount={handleSelectAccount} tabs={TABS} activeTab={tab} onTabChange={setTab}/>}
+        {!tickerInfo && acctId && acctId!=="all" && acctId!=="stocks" && acctId!=="invest" && <AccountScreen acctId={acctId} onBack={()=>setAcctId(null)} onSelectTicker={handleSelectTicker} tabs={TABS} activeTab={tab} onTabChange={setTab}/>}
+      </div>
+
+      {/* ── Bottom tab bar ── */}
+      <div style={{flexShrink:0,height:TAB_BAR_H,background:T.card,borderTop:`1px solid ${T.border}`,display:"flex",zIndex:50}}>
+        {TABS.map(t=>{
+          const active = tab===t.id;
+          return (
+            <button key={t.id} onClick={()=>{ setTab(t.id); setAcctId(null); setTickerInfo(null); }}
+              style={{flex:1,padding:"10px 8px 12px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative"}}>
+              {t.icon(active)}
+              <span style={{fontSize:9,fontWeight:active?700:400,color:active?tabActive:tabInactive,letterSpacing:"0.04em",textTransform:"uppercase",transition:"color 0.15s"}}>{t.label}</span>
+              {active&&<div style={{position:"absolute",bottom:0,left:"50%",transform:"translateX(-50%)",width:20,height:2,background:tabActive,borderRadius:1}}/>}
             </button>
           );
         })}
-        <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:5, padding:"0 6px" }}>
-          {persona.mcps.map(m => <Pill key={m} label={m} color={persona.accent}/>)}
-        </div>
       </div>
-
-      {/* ── MAIN ── */}
-      <div style={{ flex:1, overflowY:"auto", padding:"28px 28px 16px", minHeight:0 }}>
-
-        {/* Greeting */}
-        <div style={{ marginBottom:24 }}>
-          <div style={{ fontSize:20, fontWeight:800, color:"#111", letterSpacing:"-0.02em" }}>{persona.greeting}</div>
-          <div style={{ fontSize:13, color:"#999", marginTop:3 }}>
-            {loading
-              ? <span style={{ color:persona.accent, fontWeight:600 }}>Scanning {persona.mcps.join(", ")}...</span>
-              : urgentLeft > 0
-                ? <><span style={{ color:"#dc2626", fontWeight:700 }}>{urgentLeft} urgent item{urgentLeft>1?"s":""}</span> · Orchestrator scanned {persona.mcps.length} sources.</>
-                : `Orchestrator scanned ${persona.mcps.length} sources. No urgent items.`}
-          </div>
-        </div>
-
-        {/* Routing animation while loading */}
-        {loading && (
-          <div style={{ marginBottom:20 }}>
-            <RoutingBar sources={persona.mcps} accent={persona.accent} on={routing} step={routeStep}/>
-            {!routing && (
-              <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0" }}>
-                <ThinkingDots accent={persona.accent}/>
-                <span style={{ fontSize:12, color:persona.accent, fontWeight:600, marginLeft:4 }}>Prioritizing tiles...</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Error banner */}
-        {error && (
-          <div style={{ marginBottom:16, padding:"10px 14px", background:"#fff7ed", border:"1px solid #fed7aa", borderRadius:8, fontSize:12, color:"#92400E", display:"flex", alignItems:"center", gap:10 }}>
-            <span>⚠ API unavailable — showing cached intelligence.</span>
-            <button onClick={refresh} style={{ marginLeft:"auto", fontSize:11, color:"#92400E", background:"none", border:"1px solid #fed7aa", borderRadius:6, padding:"3px 10px", cursor:"pointer" }}>Retry</button>
-          </div>
-        )}
-
-        {/* Tiles */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
-          {loading
-            ? [1,2,3].map(i => <SkeletonTile key={i}/>)
-            : (tiles||[]).map(tile => (
-                <TileCard
-                  key={tile.id} tile={tile} persona={persona}
-                  onOpen={t => setDrill(t)}
-                  fb={fb[tile.id] || null}
-                  setFb={state => setFb(x => ({...x, [tile.id]:state}))}/>
-              ))
-          }
-        </div>
-
-        {/* Feedback note */}
-        {Object.values(fb).some(Boolean) && (
-          <div style={{ marginTop:18, padding:"10px 16px", background:"#fff", borderRadius:10, border:"1px solid #eee" }}>
-            <span style={{ fontSize:12, color:"#999" }}>
-              Feedback recorded. The orchestrator will recalibrate {persona.name}'s morning tiles based on your signals.
-            </span>
-          </div>
-        )}
-
-        {/* Architecture footnote */}
-        {!loading && tiles && (
-          <div style={{ marginTop:24, padding:"12px 16px", background:"#fff", borderRadius:10, border:"1px solid #eee", display:"flex", gap:20 }}>
-            <div style={{ fontSize:10, color:"#ccc", lineHeight:1.6 }}>
-              <span style={{ fontWeight:800, color:"#bbb", textTransform:"uppercase", letterSpacing:"0.06em" }}>Production architecture</span><br/>
-              MCP connections are authenticated per persona role. Each source enforces RBAC at the data layer — the orchestrator cannot request data outside the persona's authorization scope. All AI reasoning steps are logged for regulatory audit.
-            </div>
-            <div style={{ fontSize:10, color:"#ccc", lineHeight:1.6, borderLeft:"1px solid #eee", paddingLeft:20 }}>
-              <span style={{ fontWeight:800, color:"#bbb", textTransform:"uppercase", letterSpacing:"0.06em" }}>This prototype</span><br/>
-              MCP data is mocked. RBAC enforced via system prompt scoping. Tile prioritization and draft outputs are pre-built for this demo — in production both would be live API calls against real MCP feeds.
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── BOTTOM CHAT ── */}
-      <BottomChat key={pid} persona={persona} open={chatOpen} toggle={() => setChatOpen(o => !o)}/>
-
-      {/* ── DRILL DOWN ── */}
-      {drill && (
-        <DrillDown tile={drill} persona={persona} onClose={() => setDrill(null)} onDone={handleDone}/>
-      )}
-
-      <style>{`
-        @keyframes dp { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
-        @keyframes pulse { 0%,100%{opacity:.5} 50%{opacity:1} }
-        @keyframes shimmer { 0%,100%{opacity:.4} 50%{opacity:.9} }
-        * { box-sizing:border-box }
-        ::-webkit-scrollbar { width:3px; height:3px }
-        ::-webkit-scrollbar-thumb { background:#ddd; border-radius:99px }
-        ::-webkit-scrollbar-track { background:transparent }
-        button:focus { outline:none }
-        textarea:focus { border-color:inherit }
-      `}</style>
     </div>
   );
 }
